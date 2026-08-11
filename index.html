@@ -736,21 +736,27 @@ function dataURLToBytes(dataURL) {
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return { bytes, mime };
 }
-async function openAttachedFile(dataURL, name) {
+function openAttachedFile(dataURL, name) {
+  const parsed = dataURLToBytes(dataURL);
+  currentViewedFile = { bytes: parsed.bytes, mime: parsed.mime, name: name || 'file' };
+  if (parsed.mime === 'application/pdf' || (!parsed.mime.startsWith('image/') && parsed.mime !== 'application/octet-stream')) {
+    // PDF・Word・Excel等はSafari本来のビューアで新しいタブに直接開く（全ページ表示・ピンチズーム対応）
+    const win = window.open(dataURL, '_blank');
+    if (win) return;
+    // ポップアップがブロックされた場合はアプリ内モーダルにフォールバック
+  }
   const body = document.getElementById('fileViewerBody');
   const nameEl = document.getElementById('fileViewerName');
   nameEl.textContent = name || '';
   document.getElementById('fileViewerOverlay').classList.add('show');
   body.innerHTML = '<div style="color:#fff;padding:24px;font-size:13px;">読み込み中…</div>';
   try {
-    const { bytes, mime } = dataURLToBytes(dataURL);
-    currentViewedFile = { bytes, mime, name: name || 'file' };
-    const url = URL.createObjectURL(new Blob([bytes], { type: mime || 'application/octet-stream' }));
+    const { bytes, mime: m2 } = dataURLToBytes(dataURL);
+    const url = URL.createObjectURL(new Blob([bytes], { type: m2 || 'application/octet-stream' }));
     fileViewerBlobUrl = url;
-    if (mime.startsWith('image/')) {
+    if (m2.startsWith('image/')) {
       body.innerHTML = `<img src="${url}">`;
-    } else if (mime === 'application/pdf') {
-      // iPhone/iPad標準のPDF表示エンジンで開く（フォントの互換性が高い）
+    } else if (m2 === 'application/pdf') {
       body.innerHTML = `<iframe src="${url}"></iframe>`;
     } else {
       body.innerHTML = `<div style="color:#fff;padding:24px;text-align:center;">
@@ -783,11 +789,14 @@ async function shareAttachedFile() {
   // PDFなどの書類ファイルは、一時データ(blob)をそのまま他アプリに渡すと
   // 受け渡しが不安定になる（送信が固まる・重複送信される）ことがあるため、
   // 一度端末に保存してから、保存先（ファイル/写真アプリ）から共有してもらう
-  const url = URL.createObjectURL(new Blob([bytes], { type: mime || 'application/octet-stream' }));
+  // blob URLだと「ダウンロード元のリンク」がファイルに記録され、共有時に余計なリンクとして
+  // 一緒に送られてしまうことがあるため、ここではdata URLを直接使う
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const dataURL = `data:${mime || 'application/octet-stream'};base64,${btoa(binary)}`;
   const a = document.createElement('a');
-  a.href = url; a.download = name || 'file';
+  a.href = dataURL; a.download = name || 'file';
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
   showToast('💾 保存しました。「ファイル」アプリから共有してください');
 }
 function fileListHTML(files, removeOnclickFn) {
