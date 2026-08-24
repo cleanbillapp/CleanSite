@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>現場・お店情報管理｜ CleanSite</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@700&display=swap');
+  :root {
+    --sky-deep:#1E88E5; --sky-mid:#42A5F5; --sky:#29B6F6; --sky-light:#E1F5FE;
+    --white:#ffffff; --gray-light:#f5f7fa; --gray:#9aa0ae; --gray-dark:#555e72;
+    --accent:#F4900C; --accent-dark:#E65100; --danger:#e05252; --danger-light:#fdeaea;
+    --success:#2ecc8a; --success-light:#e6f9f0; --warning:#f0a500; --warning-light:#fff7e6;
+    --border:#dbe7f3; --text:#1e2535; --text-sub:#5f7185;
+    --font-main: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, 'Noto Sans JP', sans-serif;
+    --font-scale: 1;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font-main); background:var(--gray-light); color:var(--text); min-height:100vh; zoom:var(--font-scale); }
+
+  .app-header { background:var(--sky-deep); color:var(--white); padding:0 20px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,.2); }
+
+  /* お知らせバナー */
+  .notice-bar { display:none; position:sticky; top:56px; z-index:98; padding:0 14px; background:transparent; }
+  .notice-card { margin:8px 0 0; border-radius:12px; padding:12px 14px; display:flex; align-items:flex-start; gap:10px; box-shadow:0 2px 10px rgba(0,0,0,.12); animation:slideDown .35s ease; }
+  .notice-card.type-info    { background:var(--sky-light); border-left:4px solid var(--sky-deep); }
+  .notice-card.type-success { background:var(--success-light); border-left:4px solid var(--success); }
+  .notice-card.type-warning { background:var(--warning-light); border-left:4px solid var(--warning); }
+  .notice-card.type-danger  { background:var(--danger-light); border-left:4px solid var(--danger); }
+  .notice-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+  .notice-body { flex:1; min-width:0; }
+  .notice-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
+  .notice-text  { font-size:12px; color:var(--text-sub); line-height:1.6; }
+  .notice-close { background:none; border:none; font-size:18px; color:var(--gray); cursor:pointer; padding:0 0 0 6px; flex-shrink:0; line-height:1; }
+  @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+  .logo-block { display:flex; flex-direction:column; }
+  .logo { font-family:'Noto Serif JP',serif; font-size:21px; font-weight:700; letter-spacing:1px; }
+  .logo span { color:#FFCA28; }
+  .logo-swoosh { width:100%; height:7px; margin-top:-4px; }
+  .count-badge { background:rgba(255,255,255,0.2); border-radius:20px; padding:4px 14px; font-size:13px; font-weight:500; }
+
+  .tab-nav { background:var(--white); display:flex; border-bottom:2px solid var(--border); position:sticky; top:56px; z-index:99; }
+  .tab-btn { flex:1; padding:12px 4px; border:none; background:none; font-family:var(--font-main); font-size:12px; font-weight:500; color:var(--gray); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .2s; }
+  .tab-btn.active { color:var(--sky-deep); border-bottom-color:var(--sky); }
+  .tab-btn .ti { font-size:18px; display:block; margin-bottom:2px; }
+
+  .main { max-width:680px; margin:0 auto; padding:16px 14px 100px; }
+
+  .panel { background:var(--white); border-radius:16px; box-shadow:0 2px 12px rgba(30,136,229,.08); padding:18px; margin-bottom:14px; overflow:hidden; }
+  .panel-title { font-size:14px; font-weight:700; color:var(--sky-deep); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+
+  .form-row { display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:10px; }
+  .form-group { display:flex; flex-direction:column; gap:4px; }
+  label { font-size:11px; font-weight:700; color:var(--text-sub); text-transform:uppercase; letter-spacing:.5px; }
+  input[type=text], input[type=time], select, textarea {
+    width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px;
+    font-family:var(--font-main); font-size:14px; color:var(--text);
+    background:var(--white); outline:none; box-sizing:border-box; -webkit-appearance:none; appearance:none;
+  }
+  input:focus, select:focus, textarea:focus { border-color:var(--sky); }
+  textarea { resize:vertical; min-height:60px; }
+
+  .btn { border:none; border-radius:12px; font-family:var(--font-main); font-size:14px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .btn-primary { background:var(--sky-deep); color:var(--white); padding:12px 20px; width:100%; }
+  .btn-accent { background:var(--accent); color:var(--white); padding:12px 20px; width:100%; }
+  .btn-danger { background:transparent; color:var(--danger); border:1.5px solid var(--danger); padding:6px 12px; font-size:12px; }
+  .btn-outline { background:transparent; color:var(--sky-deep); border:1.5px solid var(--border); padding:10px 16px; }
+  .btn-sm { padding:6px 12px; font-size:12px; border-radius:8px; }
+
+  /* 種別切替チップ（入力） */
+  .type-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px; }
+  .type-chip { border:1.5px solid var(--border); border-radius:10px; padding:10px 4px; text-align:center; font-size:12px; font-weight:700; color:var(--gray-dark); cursor:pointer; background:var(--white); }
+  .type-chip.selected { background:var(--sky-light); border-color:var(--sky); color:var(--sky-deep); }
+
+  /* スポット種別チップ */
+  .cat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
+  .cat-chip { border:1.5px solid var(--border); border-radius:10px; padding:8px 4px; text-align:center; font-size:11px; font-weight:700; color:var(--gray); cursor:pointer; background:var(--white); }
+  .cat-chip .ci { font-size:16px; display:block; margin-bottom:2px; }
+  .cat-chip.selected { background:var(--sky-light); border-color:var(--sky); color:var(--sky-deep); }
+
+  /* 検索・頭文字 */
+  .search-row { display:flex; gap:8px; margin-bottom:10px; }
+  .search-row input { flex:1; }
+  .kana-index { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:14px; }
+  .kana-btn { border:1.5px solid var(--border); border-radius:8px; padding:5px 9px; font-size:12px; font-weight:700; color:var(--gray-dark); background:var(--white); cursor:pointer; }
+  .kana-btn.active { background:var(--sky-deep); color:var(--white); border-color:var(--sky-deep); }
+
+  .filter-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .filter-chip { border:1.5px solid var(--border); border-radius:20px; padding:6px 14px; font-size:12px; font-weight:700; color:var(--gray-dark); background:var(--white); cursor:pointer; font-family:inherit; -webkit-appearance:none; appearance:none; }
+  .filter-chip.active { background:var(--sky-light); border-color:var(--sky); color:var(--sky-deep); }
+
+  /* カード */
+  .site-card, .spot-card { border:1.5px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; background:var(--white); transition:background .4s; }
+  .site-card.flash, .spot-card.flash { background:var(--sky-light); }
+  .card-name-row { display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+  .card-name { font-size:15px; font-weight:700; color:var(--sky-deep); }
+  .chevron { font-size:12px; color:var(--gray); }
+  .card-sub { font-size:12px; color:var(--text-sub); margin-top:5px; }
+  .addr-link { color:var(--sky-deep); text-decoration:underline; }
+  .badge { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:var(--sky-light); color:var(--sky-deep); margin-right:4px; }
+  .card-detail { display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+  .card-detail.open { display:block; }
+  .spot-mini { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:var(--gray-light); border-radius:8px; margin-bottom:6px; font-size:12px; cursor:pointer; }
+  .spot-mini:active { background:var(--sky-light); }
+
+  .empty-state { text-align:center; padding:36px 20px; color:var(--gray); }
+  .empty-state .ei { font-size:44px; margin-bottom:10px; }
+
+  .guide-box { background:var(--sky-light); border-left:4px solid var(--sky); border-radius:8px; padding:12px 14px; margin-bottom:12px; font-size:13px; line-height:1.8; color:var(--sky-deep); }
+
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--sky-deep); color:var(--white); padding:11px 22px; border-radius:24px; font-size:14px; font-weight:500; opacity:0; transition:all .3s; z-index:999; white-space:nowrap; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .tab-page { display:none; }
+  .tab-page.active { display:block; }
+
+  /* 写真アップロード */
+  .photo-upload-area { border:2px dashed var(--border); border-radius:12px; padding:16px; text-align:center; cursor:pointer; transition:all .2s; }
+  .photo-upload-area:active { border-color:var(--sky); background:var(--sky-light); }
+  .photo-thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .photo-thumb { position:relative; width:72px; height:72px; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.12); }
+  .photo-thumb img { width:100%; height:100%; object-fit:cover; }
+  .photo-thumb .del-btn { position:absolute; top:2px; right:2px; background:rgba(0,0,0,.55); color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+  /* ファイル添付 */
+  .file-list { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .file-chip { display:flex; align-items:center; gap:8px; background:var(--sky-light); border-radius:10px; padding:8px 10px; font-size:13px; }
+  .file-chip .file-icon { font-size:16px; flex-shrink:0; }
+  .file-chip .file-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-main); }
+  .file-chip .file-name { cursor:pointer; text-decoration:underline; }
+  .file-chip .del-btn { background:rgba(0,0,0,.15); color:#333; border:none; border-radius:50%; width:20px; height:20px; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  /* 共有モーダル */
+  .share-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:flex-end; justify-content:center; }
+  .share-overlay.show { display:flex; }
+  .share-panel { background:var(--white); width:100%; max-width:680px; border-radius:20px 20px 0 0; padding:22px 18px calc(22px + env(safe-area-inset-bottom)); max-height:80vh; overflow-y:auto; }
+
+  /* ファイルビューア */
+  .file-viewer-overlay { display:none; position:fixed; inset:0; background:#000; z-index:1100; flex-direction:column; }
+  .file-viewer-overlay.show { display:flex; }
+  .file-viewer-header { display:flex; align-items:center; gap:10px; padding:12px 14px calc(12px + env(safe-area-inset-top)) 14px; background:#222; color:#fff; padding-top:calc(12px + env(safe-area-inset-top)); }
+  .file-viewer-header .fv-name { flex:1; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-viewer-header button { background:rgba(255,255,255,.15); color:#fff; border:none; border-radius:8px; padding:8px 12px; font-size:13px; }
+  .file-viewer-body { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; display:flex; align-items:flex-start; justify-content:center; background:#525659; }
+  .file-viewer-body img { max-width:100%; height:auto; display:block; }
+  .file-viewer-body iframe { border:none; width:100%; height:100%; background:#fff; }
+  .share-option-row { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); margin-bottom:12px; }
+  .share-option-row input { width:auto; }
+
+  .site-checklist { max-height:170px; overflow-y:auto; border:1.5px solid var(--border); border-radius:10px; padding:6px 10px; background:var(--white); }
+  .site-checklist label { display:flex; align-items:center; gap:8px; padding:7px 2px; font-size:13px; font-weight:400; color:var(--text); text-transform:none; letter-spacing:0; border-bottom:1px solid var(--gray-light); }
+  .site-checklist label:last-child { border-bottom:none; }
+  .site-checklist input { width:auto; }
+  .site-checklist .empty-hint { font-size:12px; color:var(--gray); padding:6px 2px; }
+  .contact-row { border:1.5px solid var(--border); border-radius:10px; padding:10px; margin-bottom:8px; background:var(--gray-light); }
+  .contact-row label { text-transform:none; letter-spacing:0; }
+
+  /* 小人マスコット */
+  .mascot-wrap { position:fixed; right:14px; bottom:84px; z-index:500; display:flex; flex-direction:column; align-items:flex-end; gap:6px; opacity:0; transform:translateY(20px) scale(.8); pointer-events:none; transition:opacity .35s ease, transform .35s ease; }
+  .mascot-wrap.show { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .mascot-bubble { background:var(--white); color:var(--text); font-size:12px; font-weight:700; padding:6px 12px; border-radius:14px; box-shadow:0 3px 10px rgba(0,0,0,.15); white-space:nowrap; border:1.5px solid var(--sky-light); }
+  .mascot-svg-wrap { width:56px; height:56px; cursor:pointer; animation:mascotBob 1.6s ease-in-out infinite; }
+  .mascot-tool { transform-origin:70% 60%; animation:mascotSwing 1s ease-in-out infinite; }
+  @keyframes mascotBob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+  @keyframes mascotSwing { 0%,100%{ transform:rotate(-12deg); } 50%{ transform:rotate(18deg); } }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo-block">
+    <div class="logo">Clean<span>Site</span></div>
+    <svg class="logo-swoosh" viewBox="0 0 130 10" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <ellipse cx="65" cy="4.2" rx="8" ry="2.8" fill="#F4B400"/>
+      <polygon points="2,5 65,3.6 128,5 65,6.4" fill="#F4B400"/>
+    </svg>
+  </div>
+  <div class="count-badge" id="countBadge">0件</div>
+</header>
+
+<!-- お知らせバナー -->
+<div class="notice-bar" id="noticeBar">
+  <div class="notice-card" id="noticeCard">
+    <div class="notice-icon" id="noticeIcon">🔔</div>
+    <div class="notice-body">
+      <div class="notice-title" id="noticeTitle"></div>
+      <div class="notice-text"  id="noticeText"></div>
+    </div>
+    <button class="notice-close" onclick="closeNotice()">×</button>
+  </div>
+</div>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('sites',this)"><span class="ti">🏢</span>現場</button>
+  <button class="tab-btn" onclick="switchTab('spots',this)"><span class="ti">📍</span>スポット</button>
+  <button class="tab-btn" onclick="switchTab('clients',this)"><span class="ti">🤝</span>取引先</button>
+  <button class="tab-btn" onclick="switchTab('input',this)"><span class="ti">➕</span>入力</button>
+  <button class="tab-btn" onclick="switchTab('settings',this)"><span class="ti">⚙️</span>設定</button>
+  <button class="tab-btn" onclick="switchTab('guide',this)"><span class="ti">📖</span>ガイド</button>
+</nav>
+
+<main class="main">
+
+  <!-- ===== TAB: 現場一覧 ===== -->
+  <div class="tab-page active" id="tab-sites">
+    <div class="search-row">
+      <input type="text" id="siteSearch" placeholder="名称で検索" oninput="renderSites()">
+    </div>
+    <div class="kana-index" id="siteKanaIndex"></div>
+    <div id="siteList"></div>
+  </div>
+
+  <!-- ===== TAB: スポット一覧 ===== -->
+  <div class="tab-page" id="tab-spots">
+    <div id="backToSiteBar"></div>
+    <div class="search-row">
+      <input type="text" id="spotSearch" placeholder="店名で検索" oninput="renderSpots()">
+    </div>
+    <div class="filter-chips" id="spotFilterChips"></div>
+    <div id="spotList"></div>
+  </div>
+
+  <!-- ===== TAB: 取引先一覧 ===== -->
+  <div class="tab-page" id="tab-clients">
+    <div class="search-row">
+      <input type="text" id="clientSearch" placeholder="取引先名で検索" oninput="renderClients()">
+    </div>
+    <div class="kana-index" id="clientKanaIndex"></div>
+    <div id="clientList"></div>
+  </div>
+
+  <!-- ===== TAB: 入力 ===== -->
+  <div class="tab-page" id="tab-input">
+    <div class="panel">
+      <div class="panel-title">➕ 新規登録</div>
+      <div class="type-grid">
+        <div class="type-chip selected" data-mode="site" onclick="switchInputMode('site',this)">🏢 現場</div>
+        <div class="type-chip" data-mode="spot" onclick="switchInputMode('spot',this)">📍 スポット</div>
+        <div class="type-chip" data-mode="client" onclick="switchInputMode('client',this)">🤝 取引先</div>
+      </div>
+
+      <!-- 現場入力 -->
+      <div id="siteForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>名称</label>
+            <input type="text" id="siteName" placeholder="例：〇〇レジデンス">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>住所</label>
+            <input type="text" id="siteAddress" placeholder="例：東京都〇〇区〇〇1-2-3">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>メモ（任意）</label>
+            <textarea id="siteNote" placeholder="例：管理人の対応時間、鍵の受け取り方法など"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>メモ2（任意）</label>
+            <textarea id="siteNote2" placeholder="例：ゴミ出しルール、駐輪場の場所など"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>取引先（任意・複数選択可）</label>
+            <div id="siteClientLinks" class="site-checklist"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>写真（任意）</label>
+            <div class="photo-upload-area" onclick="document.getElementById('sitePhotoInput').click()">
+              <input type="file" id="sitePhotoInput" accept="image/*" multiple onchange="handleSitePhotoUpload(event)" style="display:none;">
+              <div style="font-size:26px;margin-bottom:4px;">📷</div>
+              <div style="font-size:13px;color:var(--text-sub);">タップして写真を追加</div>
+            </div>
+            <div class="photo-thumbs" id="sitePhotoThumbs"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ファイル（任意）</label>
+            <div class="photo-upload-area" onclick="document.getElementById('siteFileInput').click()">
+              <input type="file" id="siteFileInput" multiple onchange="handleSiteFileUpload(event)" style="display:none;">
+              <div style="font-size:26px;margin-bottom:4px;">📎</div>
+              <div style="font-size:13px;color:var(--text-sub);">タップしてファイルを追加（PDF・Word・Excelなど）</div>
+            </div>
+            <div class="file-list" id="siteFileList"></div>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="addSite()">✅ 現場を登録</button>
+      </div>
+
+      <!-- 取引先入力 -->
+      <div id="clientForm" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>取引先名</label>
+            <input type="text" id="clientName" placeholder="例：〇〇管理株式会社">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>住所（任意）</label>
+            <input type="text" id="clientAddress" placeholder="例：東京都〇〇区〇〇1-2-3">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr;">
+          <div class="form-group">
+            <label>電話番号（任意）</label>
+            <input type="text" id="clientPhone1" placeholder="例：03-0000-0000">
+          </div>
+          <div class="form-group">
+            <label>電話番号2（任意）</label>
+            <input type="text" id="clientPhone2" placeholder="例：090-0000-0000">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>メールアドレス（任意）</label>
+            <input type="text" id="clientEmail" placeholder="例：info@example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ホームページ（任意）</label>
+            <input type="text" id="clientWebsite" placeholder="例：https://example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>メモ（任意）</label>
+            <textarea id="clientNote" placeholder="例：契約内容、支払い条件など"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>メモ2（任意）</label>
+            <textarea id="clientNote2" placeholder="例：来社時の注意事項など"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>担当者</label>
+            <div id="clientContactsContainer"></div>
+            <button type="button" class="btn btn-outline" style="margin-top:8px;" onclick="addContactRow('clientContactsContainer')">➕ 担当者を追加</button>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="addClient()">✅ 取引先を登録</button>
+      </div>
+
+      <!-- スポット入力 -->
+      <div id="spotForm" style="display:none;">
+        <div style="margin-bottom:8px;"><label>種別</label></div>
+        <div class="cat-grid">
+          <div class="cat-chip selected" data-cat="駐車場" onclick="selectSpotCat(this)"><span class="ci">🅿️</span>駐車場</div>
+          <div class="cat-chip" data-cat="コンビニ" onclick="selectSpotCat(this)"><span class="ci">🏪</span>コンビニ</div>
+          <div class="cat-chip" data-cat="飲食店" onclick="selectSpotCat(this)"><span class="ci">🍴</span>飲食店</div>
+          <div class="cat-chip" data-cat="お気に入り" onclick="selectSpotCat(this)"><span class="ci">⭐</span>お気に入り</div>
+          <div class="cat-chip" data-cat="その他" onclick="selectSpotCat(this)"><span class="ci">📦</span>その他</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>店舗名</label>
+            <input type="text" id="spotName" placeholder="例：〇〇コインパーキング">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>住所</label>
+            <input type="text" id="spotAddress" placeholder="例：東京都〇〇区〇〇1-2-3">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr;">
+          <div class="form-group">
+            <label>営業時間（任意）</label>
+            <input type="text" id="spotHours" placeholder="例：9:00-22:00">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;margin-top:2px;">
+              <input type="checkbox" id="spotShowHours" checked style="width:auto;">現場の一覧に表示
+            </label>
+          </div>
+          <div class="form-group">
+            <label>価格帯・メモ（任意）</label>
+            <input type="text" id="spotPrice" placeholder="例：30分200円">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;margin-top:2px;">
+              <input type="checkbox" id="spotShowPrice" checked style="width:auto;">現場の一覧に表示
+            </label>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ホームページURL（任意）</label>
+            <input type="text" id="spotUrl" placeholder="例：https://example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>関連する現場（任意・複数選択可）</label>
+            <div id="spotSiteLinks" class="site-checklist"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>写真（任意）</label>
+            <div class="photo-upload-area" onclick="document.getElementById('spotPhotoInput').click()">
+              <input type="file" id="spotPhotoInput" accept="image/*" multiple onchange="handleSpotPhotoUpload(event)" style="display:none;">
+              <div style="font-size:26px;margin-bottom:4px;">📷</div>
+              <div style="font-size:13px;color:var(--text-sub);">タップして写真を追加</div>
+            </div>
+            <div class="photo-thumbs" id="spotPhotoThumbs"></div>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="addSpot()">✅ スポットを登録</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: 設定 ===== -->
+  <div class="tab-page" id="tab-settings">
+    <div class="panel">
+      <div class="panel-title">🔤 文字の大きさ</div>
+      <div style="text-align:center; font-size:16px; color:var(--sky-deep); font-weight:700; margin-bottom:8px;" id="fontScaleLabel">100%</div>
+      <input type="range" id="fontScaleSlider" min="90" max="150" step="5" value="100"
+        oninput="previewFontScale(this.value/100)" onchange="setFontScale(this.value/100)" style="width:100%; margin-bottom:12px;">
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="filter-chip font-scale-btn" data-scale="100" onclick="setFontScale(1)" style="flex:1; text-align:center;">標準</button>
+        <button type="button" class="filter-chip font-scale-btn" data-scale="115" onclick="setFontScale(1.15)" style="flex:1; text-align:center;">大きめ</button>
+        <button type="button" class="filter-chip font-scale-btn" data-scale="130" onclick="setFontScale(1.3)" style="flex:1; text-align:center;">特大</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🗺️ 地図アプリの設定</div>
+      <div style="font-size:12px; color:var(--text-sub); margin-bottom:10px;">
+        住所をタップした時に開く地図アプリを選べます。
+      </div>
+      <label class="share-option-row"><input type="radio" name="mapPref" id="mapPrefGoogle" value="google" onchange="setMapPref(this.value)">Googleマップ</label>
+      <label class="share-option-row"><input type="radio" name="mapPref" id="mapPrefApple" value="apple" onchange="setMapPref(this.value)">Appleマップ</label>
+      <label class="share-option-row"><input type="radio" name="mapPref" id="mapPrefYahoo" value="yahoo" onchange="setMapPref(this.value)">Yahoo!地図</label>
+      <label class="share-option-row"><input type="radio" name="mapPref" id="mapPrefNavitime" value="navitime" onchange="setMapPref(this.value)">NAVITIME</label>
+    </div>
+  </div>
+
+  <!-- ===== TAB: ガイド ===== -->
+  <div class="tab-page" id="tab-guide">
+    <div class="panel" style="background:var(--sky-deep); text-align:center; padding:24px 20px;">
+      <div style="font-size:44px; margin-bottom:10px;">🌤️</div>
+      <div style="font-size:18px; font-weight:700; color:#fff; margin-bottom:6px;">CleanSiteの使い方</div>
+      <div style="font-size:12px; color:rgba(255,255,255,0.85); line-height:1.8;">
+        現場の情報と周りの便利な場所を<br>ひとつのアプリで管理できます
+      </div>
+    </div>
+
+    <!-- 友達に教えるボタン -->
+    <div class="panel" style="text-align:center; padding:24px 20px; background:var(--sky-mid);">
+      <div style="font-size:44px; margin-bottom:10px;">🤝</div>
+      <div style="font-size:17px; font-weight:700; color:var(--white); margin-bottom:6px;">仲間にも使ってもらおう！</div>
+      <div style="font-size:12px; color:rgba(255,255,255,0.85); margin-bottom:18px; line-height:1.8;">
+        このアプリのURLをLINEやメッセージで<br>かんたんに共有できます
+      </div>
+      <button class="btn btn-accent" style="max-width:280px; margin:0 auto; font-size:15px; padding:14px 20px;"
+        onclick="shareApp()">
+        📲 友達にアプリを教える
+      </button>
+    </div>
+
+    <!-- 姉妹アプリ CleanBill -->
+    <div class="panel" style="background:var(--sky-mid); padding:20px; text-align:center;">
+      <div style="font-size:36px; margin-bottom:8px;">🧾</div>
+      <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:6px;">姉妹アプリ CleanBill</div>
+      <div style="font-size:12px; color:rgba(255,255,255,0.9); line-height:1.8; margin-bottom:14px;">
+        請求書をかんたんに作成。<br>経費もまとめて管理できます。<br>CleanBillで作成したデータをCleanTaxに取り込む事も可能です
+      </div>
+      <button onclick="window.open('https://cleanbillapp.github.io/PLOMPT/','_blank')"
+        style="background:var(--accent);color:#fff;border:none;border-radius:12px;
+               padding:13px 20px;font-size:14px;font-weight:700;
+               font-family:var(--font-main);cursor:pointer;width:100%;">
+        🧾 CleanBillを開く
+      </button>
+    </div>
+
+    <!-- 姉妹アプリ CleanTax -->
+    <div class="panel" style="background:var(--sky-mid); padding:20px; text-align:center;">
+      <div style="font-size:36px; margin-bottom:8px;">📊</div>
+      <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:6px;">姉妹アプリ CleanTax</div>
+      <div style="font-size:12px; color:rgba(255,255,255,0.9); line-height:1.8; margin-bottom:14px;">
+        確定申告サポートアプリです。売上と経費を入力するだけで複式帳簿が自動作成！青色申告（最大65万円控除）がかんたんにできます。勿論白色申告も👍<br>CleanBillの経費データもそのまま取り込めます✨
+      </div>
+      <button onclick="window.open('https://cleanbillapp.github.io/CleanTax/','_blank')"
+        style="background:var(--accent);color:#fff;border:none;border-radius:12px;
+               padding:13px 20px;font-size:14px;font-weight:700;
+               font-family:var(--font-main);cursor:pointer;width:100%;">
+        📊 CleanTaxを開く
+      </button>
+    </div>
+
+    <a href="https://cleanbillapp.github.io/CleanApps/" target="_blank" rel="noopener"
+      style="display:block; text-decoration:none; background:#2A2A2A; border-radius:12px;
+             padding:14px 18px; margin-bottom:14px; text-align:center; font-family:var(--font-main);">
+      <div style="color:rgba(255,255,255,0.7); font-size:11px; margin-bottom:8px;">仕事をもっとシンプルに。</div>
+      <div style="display:flex; align-items:center; justify-content:center; gap:6px; color:#fff; font-size:13px; font-weight:700;">
+        CleanApps を見る <span style="color:#fff;">›</span>
+      </div>
+    </a>
+
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfVZVXUQdXaWtWkywWPalpVpy5N7gNppiMR1RpmRApbynhQlg/viewform?usp=preview" target="_blank" rel="noopener"
+      style="display:block; text-decoration:none; background:var(--sky-light); border:1.5px solid var(--sky); border-radius:12px;
+             padding:14px 18px; margin-bottom:14px; text-align:center; font-family:var(--font-main);">
+      <div style="color:var(--sky-deep); font-size:11px; margin-bottom:8px;">アプリをもっと良くするために</div>
+      <div style="display:flex; align-items:center; justify-content:center; gap:6px; color:var(--sky-deep); font-size:13px; font-weight:700;">
+        💬 ご意見・ご要望を送る <span>›</span>
+      </div>
+    </a>
+
+    <div class="panel">
+      <div class="panel-title">📖 基本の使い方</div>
+      <div style="font-size:13px; color:var(--text-sub); line-height:2;">
+        1. 「入力」タブで現場（ビル、マンション等）を登録<br>
+        2. 「入力」タブでその現場の近くのスポット（駐車場・コンビニ・飲食店など）を登録<br>
+        3. 現場一覧で名称をタップすると、紐づくスポットが確認できます<br>
+        4. スポットをタップすると、そのスポットの詳細が開きます<br>
+        5. 単独のお気に入り店舗も「スポット」タブから登録・閲覧できます<br>
+        6. 住所をタップするとマップアプリで開けます<br>
+        7. カードの「編集」ボタンから内容を修正できます<br>
+        8. メモ・メモ2欄に補足情報を、写真欄に現場やスポットの画像を追加できます<br>
+        9. カードの「🔗 教える」ボタンから、その現場・スポットだけを選んで共有できます<br>
+        10. 「取引先」タブで会社と担当者を登録し、現場の登録・編集画面から関連する取引先・担当者を選んで紐付けられます
+      </div>
+    </div>
+
+    <div class="guide-box">
+      💡 名称の頭文字ボタン（ひらがな・カタカナどちらでも反応、アルファベットは「ABC」）や検索バーで、すぐに目的の現場を探せます。
+    </div>
+
+    <!-- 重要な注意事項 -->
+    <div class="panel">
+      <div class="panel-title">⚠️ 必ずお読みください</div>
+
+      <div style="background:#fff7e6; border-left:4px solid var(--accent); border-radius:8px; padding:14px; margin-bottom:12px;">
+        <div style="font-weight:700; font-size:14px; color:#b37700; margin-bottom:6px;">📱 ホーム画面への追加が必須です</div>
+        <div style="font-size:13px; color:#7a5200; line-height:1.8;">
+          このアプリはブラウザで開くWebアプリです。<b>必ずホーム画面に追加してアイコンから起動</b>するようにしてください。ブラウザのタブから毎回開くとデータが消えるリスクがあります。
+        </div>
+      </div>
+
+      <div style="background:#fdeaea; border-left:4px solid var(--danger); border-radius:8px; padding:14px; margin-bottom:12px;">
+        <div style="font-weight:700; font-size:14px; color:#b32020; margin-bottom:6px;">🗑️ キャッシュ削除でデータが消えます</div>
+        <div style="font-size:13px; color:#7a1515; line-height:1.8;">
+          iPhoneの「設定」→「Safari」→「履歴とWebサイトデータを消去」を実行すると、アプリに保存した現場・スポットのデータがすべて消えてしまいます。<b>この操作は絶対に行わないでください。</b>
+        </div>
+      </div>
+
+      <div style="background:var(--sky-light); border-left:4px solid var(--sky); border-radius:8px; padding:14px;">
+        <div style="font-weight:700; font-size:14px; color:var(--sky-deep); margin-bottom:6px;">💾 データはスマホの中に保存されます</div>
+        <div style="font-size:13px; color:var(--text-sub); line-height:1.8;">
+          登録したデータはあなたのスマホの中にのみ保存され、他の人には自動で共有されません。他の人に見せたい場合は、各カードの「🔗 教える」ボタンをご利用ください。機種変更の際もデータは引き継がれませんのでご注意ください。
+        </div>
+      </div>
+    </div>
+
+    <!-- ホーム画面への追加方法 -->
+    <div class="panel">
+      <div class="panel-title">📱 ホーム画面への追加方法</div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px; font-weight:700; color:var(--sky-deep); background:var(--sky-light); border-radius:8px; padding:10px 12px; margin-bottom:10px;">
+          🍎 iPhoneの場合（Safari）
+        </div>
+        <div style="font-size:13px; color:var(--text-sub); line-height:2; padding:0 4px;">
+          1. SafariでアプリのURLを開く<br>
+          2. 画面下の <b>共有ボタン（□に↑）</b> をタップ<br>
+          3. <b>「ホーム画面に追加」</b> をタップ<br>
+          4. 右上の <b>「追加」</b> をタップ<br>
+          5. ホーム画面にアイコンが追加されます ✅
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:13px; font-weight:700; color:var(--sky-deep); background:var(--sky-light); border-radius:8px; padding:10px 12px; margin-bottom:10px;">
+          🤖 Androidの場合（Chrome）
+        </div>
+        <div style="font-size:13px; color:var(--text-sub); line-height:2; padding:0 4px;">
+          1. ChromeでアプリのURLを開く<br>
+          2. 右上の <b>「⋮」メニュー</b> をタップ<br>
+          3. <b>「ホーム画面に追加」</b> をタップ<br>
+          4. <b>「追加」</b> をタップ<br>
+          5. ホーム画面にアイコンが追加されます ✅
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- 小人マスコット -->
+<div class="mascot-wrap" id="mascotWrap" onclick="hideMascot()">
+  <div class="mascot-bubble" id="mascotBubble">点検中…</div>
+  <div class="mascot-svg-wrap">
+    <svg viewBox="0 0 64 64" width="56" height="56" xmlns="http://www.w3.org/2000/svg">
+      <!-- 足 -->
+      <ellipse cx="26" cy="57" rx="6" ry="3" fill="#5f7185"/>
+      <ellipse cx="40" cy="57" rx="6" ry="3" fill="#5f7185"/>
+      <!-- 体 -->
+      <rect x="20" y="34" width="24" height="22" rx="10" fill="#1E88E5"/>
+      <!-- 顔 -->
+      <circle cx="32" cy="30" r="14" fill="#FFE0B2"/>
+      <circle cx="27" cy="30" r="1.8" fill="#1e2535"/>
+      <circle cx="37" cy="30" r="1.8" fill="#1e2535"/>
+      <path d="M27 35 Q32 39 37 35" stroke="#1e2535" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <circle cx="24" cy="33" r="2.4" fill="#FFB74D" opacity=".6"/>
+      <circle cx="40" cy="33" r="2.4" fill="#FFB74D" opacity=".6"/>
+      <!-- 帽子（三角のとんがり帽子＋オレンジのふち＋先端に丸） -->
+      <path d="M32 2 L46 24 Q32 20 18 24 Z" fill="#1E88E5"/>
+      <ellipse cx="32" cy="24" rx="15" ry="3.5" fill="#F4900C"/>
+      <circle cx="32" cy="4" r="3" fill="#F4900C"/>
+      <!-- 腕（工具を持つ側） -->
+      <g class="mascot-tool">
+        <rect x="41" y="36" width="14" height="5" rx="2.5" fill="#FFE0B2"/>
+        <rect x="52" y="30" width="4" height="14" rx="1.5" fill="#8d6e63"/>
+        <rect x="49" y="27" width="10" height="5" rx="1.5" fill="#8d6e63"/>
+      </g>
+      <!-- もう片方の腕 -->
+      <rect x="9" y="38" width="13" height="5" rx="2.5" fill="#FFE0B2"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ===== 共有モーダル ===== -->
+<div class="share-overlay" id="shareOverlay" onclick="if(event.target===this) closeShareModal()">
+  <div class="share-panel">
+    <div style="font-size:15px;font-weight:700;color:var(--sky-deep);margin-bottom:14px;" id="shareModalTitle">共有内容を選択</div>
+    <div id="shareModalOptions"></div>
+    <div style="display:flex; gap:8px; margin-top:6px;">
+      <button class="btn btn-accent" style="flex:1;" onclick="doShare()">📤 共有する</button>
+      <button class="btn btn-outline" style="flex:1;" onclick="closeShareModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ファイルビューア ===== -->
+<div class="file-viewer-overlay" id="fileViewerOverlay">
+  <div class="file-viewer-header">
+    <button onclick="closeFileViewer()">← 戻る</button>
+    <div class="fv-name" id="fileViewerName"></div>
+    <button onclick="shareAttachedFile()">📤 共有</button>
+  </div>
+  <div class="file-viewer-body" id="fileViewerBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let sites = JSON.parse(localStorage.getItem('cs_sites') || '[]');
+let spots = JSON.parse(localStorage.getItem('cs_spots') || '[]');
+let clients = JSON.parse(localStorage.getItem('cs_clients') || '[]');
+
+// 旧データ形式（siteId 単数）を siteIds 配列に移行
+let cs_migrated = false;
+spots.forEach(sp => {
+  if (!sp.siteIds) {
+    sp.siteIds = sp.siteId ? [sp.siteId] : [];
+    delete sp.siteId;
+    cs_migrated = true;
+  }
+});
+if (cs_migrated) saveSpots();
+let inputMode = 'site';
+let selectedSpotCat = '駐車場';
+let siteKanaFilter = '';
+let clientKanaFilter = '';
+let spotCatFilter = 'all';
+let expandedSiteIds = new Set();
+let lastSiteId = null; // スポット詳細から「現場に戻る」ために記憶
+
+let currentSitePhotos = [];
+let currentSpotPhotos = [];
+let sitePhotoCache = {};   // id -> [dataURL,...]
+let spotPhotoCache = {};   // id -> [dataURL,...]
+let editSitePhotoTemp = {}; // id -> [dataURL,...]（編集中の一時配列）
+let editSpotPhotoTemp = {};
+let shareContext = null;   // {type:'site'|'spot', id}
+
+let currentSiteFiles = [];  // [{name,type,dataURL},...]（新規登録フォーム用）
+let siteFileCache = {};     // id -> [{name,type,dataURL},...]
+let editSiteFileTemp = {};  // id -> [{name,type,dataURL},...]（編集中の一時配列）
+
+const CAT_LIST = ['駐車場','コンビニ','飲食店','お気に入り','その他'];
+const CAT_ICONS = {'駐車場':'🅿️','コンビニ':'🏪','飲食店':'🍴','お気に入り':'⭐','その他':'📦'};
+function spotIcon(cat) { return CAT_ICONS[cat] || '📦'; }
+
+const KANA_GROUPS = [
+  {label:'あ',chars:['あ','い','う','え','お']},
+  {label:'か',chars:['か','き','く','け','こ','が','ぎ','ぐ','げ','ご']},
+  {label:'さ',chars:['さ','し','す','せ','そ','ざ','じ','ず','ぜ','ぞ']},
+  {label:'た',chars:['た','ち','つ','て','と','だ','ぢ','づ','で','ど']},
+  {label:'な',chars:['な','に','ぬ','ね','の']},
+  {label:'は',chars:['は','ひ','ふ','へ','ほ','ば','び','ぶ','べ','ぼ','ぱ','ぴ','ぷ','ぺ','ぽ']},
+  {label:'ま',chars:['ま','み','む','め','も']},
+  {label:'や',chars:['や','ゆ','よ']},
+  {label:'ら',chars:['ら','り','る','れ','ろ']},
+  {label:'わ',chars:['わ','を','ん']},
+];
+
+// ╔══════════════════════════════════════════════════╗
+// ║　　　　　お知らせ設定エリア　　　　　　　　　　　║
+// ║　ここを編集するだけでお知らせを変更できます　　　║
+// ╚══════════════════════════════════════════════════╝
+const NOTICE = {
+  show:    true,
+  type:    'info',
+  icon:    '📱',
+  title:   'ご利用の前に',
+  text:    'ご利用の際は、必ず「ホーム画面に追加」してご使用ください😌',
+  id:      'notice_v1',
+};
+// ══════════════════════════════════════════════════
+
+function initNotice() {
+  if (!NOTICE.show) return;
+  if (localStorage.getItem('cs_closed_' + NOTICE.id)) return;
+
+  document.getElementById('noticeBar').style.display  = 'block';
+  document.getElementById('noticeCard').className     = 'notice-card type-' + NOTICE.type;
+  document.getElementById('noticeIcon').textContent   = NOTICE.icon;
+  document.getElementById('noticeTitle').textContent  = NOTICE.title;
+  document.getElementById('noticeText').textContent   = NOTICE.text;
+}
+function closeNotice() {
+  document.getElementById('noticeBar').style.display = 'none';
+  localStorage.setItem('cs_closed_' + NOTICE.id, '1');
+}
+
+// ─── 小人マスコット ─────────────────────────────────────────
+const MASCOT_MESSAGES = [
+  '点検中…',
+  'ここ直しておいたよ！',
+  '整理整頓、任せて！',
+  'ピカピカにしとくね✨',
+  'お疲れさま、ひと休みしてね',
+  'よし、問題なし！',
+];
+let mascotTimer = null;
+
+function scheduleMascot() {
+  const delay = 45000 + Math.random() * 60000; // 45秒〜105秒の間でランダム
+  mascotTimer = setTimeout(showMascot, delay);
+}
+function showMascot() {
+  const wrap = document.getElementById('mascotWrap');
+  const bubble = document.getElementById('mascotBubble');
+  if (!wrap || !bubble) return;
+  bubble.textContent = MASCOT_MESSAGES[Math.floor(Math.random() * MASCOT_MESSAGES.length)];
+  wrap.classList.add('show');
+  setTimeout(() => {
+    hideMascot();
+  }, 4000);
+}
+function hideMascot() {
+  const wrap = document.getElementById('mascotWrap');
+  if (wrap) wrap.classList.remove('show');
+  clearTimeout(mascotTimer);
+  scheduleMascot();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  renderKanaIndex();
+  renderClientKanaIndex();
+  renderSpotFilterChips();
+  updateSiteLinkOptions();
+  updateClientLinkOptions();
+  initNotice();
+  scheduleMascot();
+  const mapPrefEl = document.getElementById('mapPref' + getMapPref().charAt(0).toUpperCase() + getMapPref().slice(1));
+  if (mapPrefEl) mapPrefEl.checked = true;
+  const savedScale = getFontScale();
+  document.documentElement.style.setProperty('--font-scale', savedScale);
+  updateFontScaleUI(savedScale);
+  await loadAllPhotoCaches();
+  await loadAllFileCaches();
+  renderAll();
+});
+
+async function loadAllPhotoCaches() {
+  for (const s of sites) sitePhotoCache[s.id] = await csLoadPhotos('site_' + s.id);
+  for (const sp of spots) spotPhotoCache[sp.id] = await csLoadPhotos('spot_' + sp.id);
+}
+
+async function loadAllFileCaches() {
+  for (const s of sites) siteFileCache[s.id] = await csLoadPhotos('sitefile_' + s.id);
+}
+
+// ─── 写真保存用 IndexedDB ─────────────────────────────────
+const CS_DB_NAME = 'cleansite_photos_db', CS_DB_VER = 1, CS_STORE = 'photos';
+let csDb = null;
+function csOpenDB() {
+  return new Promise((resolve, reject) => {
+    if (csDb) { resolve(csDb); return; }
+    const req = indexedDB.open(CS_DB_NAME, CS_DB_VER);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(CS_STORE);
+    req.onsuccess = e => { csDb = e.target.result; resolve(csDb); };
+    req.onerror = () => reject(req.error);
+  });
+}
+async function csSavePhotos(key, photos) {
+  try {
+    const d = await csOpenDB();
+    return new Promise((resolve) => {
+      const tx = d.transaction(CS_STORE, 'readwrite');
+      tx.objectStore(CS_STORE).put(JSON.stringify(photos || []), key);
+      tx.oncomplete = resolve; tx.onerror = resolve;
+    });
+  } catch(e) {}
+}
+async function csLoadPhotos(key) {
+  try {
+    const d = await csOpenDB();
+    return new Promise((resolve) => {
+      const req = d.transaction(CS_STORE, 'readonly').objectStore(CS_STORE).get(key);
+      req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : []);
+      req.onerror = () => resolve([]);
+    });
+  } catch(e) { return []; }
+}
+async function csDeletePhotos(key) {
+  try {
+    const d = await csOpenDB();
+    const tx = d.transaction(CS_STORE, 'readwrite');
+    tx.objectStore(CS_STORE).delete(key);
+  } catch(e) {}
+}
+
+function saveSites() { localStorage.setItem('cs_sites', JSON.stringify(sites)); }
+function saveSpots() { localStorage.setItem('cs_spots', JSON.stringify(spots)); }
+function saveClients() { localStorage.setItem('cs_clients', JSON.stringify(clients)); }
+function escAttr(str) { return (str||'').replace(/"/g,'&quot;'); }
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'sites') renderSites();
+  if (id === 'clients') renderClients();
+  if (id === 'spots') {
+    lastSiteId = null;
+    renderBackToSiteBar();
+    renderSpots();
+  }
+}
+
+function switchInputMode(mode, el) {
+  inputMode = mode;
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('siteForm').style.display = mode === 'site' ? 'block' : 'none';
+  document.getElementById('spotForm').style.display = mode === 'spot' ? 'block' : 'none';
+  document.getElementById('clientForm').style.display = mode === 'client' ? 'block' : 'none';
+  if (mode === 'spot') updateSiteLinkOptions();
+  if (mode === 'site') updateClientLinkOptions();
+}
+
+function selectSpotCat(el) {
+  document.querySelectorAll('#spotForm .cat-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSpotCat = el.dataset.cat;
+}
+
+function getMapPref() { return localStorage.getItem('cs_map_pref') || 'google'; }
+function setMapPref(value) {
+  localStorage.setItem('cs_map_pref', value);
+  renderAll();
+  showToast('🗺️ 地図アプリの設定を保存しました');
+}
+
+// ─── 文字の大きさ ──────────────────────────────────────────
+function getFontScale() { return parseFloat(localStorage.getItem('cs_font_scale') || '1'); }
+function previewFontScale(scale) {
+  scale = Math.min(1.5, Math.max(0.9, scale));
+  document.documentElement.style.setProperty('--font-scale', scale);
+  updateFontScaleUI(scale);
+}
+function setFontScale(scale) {
+  scale = Math.min(1.5, Math.max(0.9, Math.round(scale * 20) / 20));
+  localStorage.setItem('cs_font_scale', scale);
+  document.documentElement.style.setProperty('--font-scale', scale);
+  updateFontScaleUI(scale);
+  showToast('🔤 文字の大きさを保存しました');
+}
+function updateFontScaleUI(scale) {
+  const pct = Math.round(scale * 100);
+  const slider = document.getElementById('fontScaleSlider');
+  if (slider) slider.value = pct;
+  const label = document.getElementById('fontScaleLabel');
+  if (label) label.textContent = pct + '%';
+  document.querySelectorAll('.font-scale-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.scale, 10) === pct);
+  });
+}
+function mapLink(address) {
+  const q = encodeURIComponent(address);
+  const pref = getMapPref();
+  if (pref === 'apple') return 'https://maps.apple.com/?q=' + q;
+  if (pref === 'yahoo') return 'https://map.yahoo.co.jp/search?p=' + q;
+  if (pref === 'navitime') return 'https://www.navitime.co.jp/maps/search?word=' + q;
+  return 'https://www.google.com/maps/search/?api=1&query=' + q;
+}
+
+function normalizeUrl(url) {
+  if (!url) return '#';
+  return /^https?:\/\//i.test(url) ? url : 'https://' + url;
+}
+
+function copyAddress(address) {
+  if (!address) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(address).then(() => showToast('📋 住所をコピーしました'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = address;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 住所をコピーしました');
+  }
+}
+function copyAddressBtn(btn) { copyAddress(btn.dataset.address); }
+
+// 現場カードから、その現場に紐づくスポットをすぐ登録できるように入力タブへ移動
+function addSpotForSite(siteId) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-input').classList.add('active');
+  document.querySelectorAll('.tab-btn')[3].classList.add('active');
+  const spotChip = document.querySelector('.type-chip[data-mode="spot"]');
+  switchInputMode('spot', spotChip);
+  updateSiteLinkOptions();
+  const cb = document.querySelector('#spotSiteLinks input[value="' + siteId + '"]');
+  if (cb) cb.checked = true;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('📍 スポットを登録してください');
+}
+
+// ─── 写真アップロード（新規登録フォーム） ─────────────────────
+function handleSitePhotoUpload(ev) {
+  Array.from(ev.target.files).forEach(file => {
+    const r = new FileReader();
+    r.onload = e => { currentSitePhotos.push(e.target.result); renderSiteFormThumbs(); };
+    r.readAsDataURL(file);
+  });
+  ev.target.value = '';
+}
+function renderSiteFormThumbs() {
+  const el = document.getElementById('sitePhotoThumbs');
+  if (!el) return;
+  el.innerHTML = currentSitePhotos.map((src,i) => `
+    <div class="photo-thumb"><img src="${src}"><button class="del-btn" onclick="removeSiteFormThumb(${i})">✕</button></div>`).join('');
+}
+function removeSiteFormThumb(i) { currentSitePhotos.splice(i,1); renderSiteFormThumbs(); }
+
+function handleSpotPhotoUpload(ev) {
+  Array.from(ev.target.files).forEach(file => {
+    const r = new FileReader();
+    r.onload = e => { currentSpotPhotos.push(e.target.result); renderSpotFormThumbs(); };
+    r.readAsDataURL(file);
+  });
+  ev.target.value = '';
+}
+function renderSpotFormThumbs() {
+  const el = document.getElementById('spotPhotoThumbs');
+  if (!el) return;
+  el.innerHTML = currentSpotPhotos.map((src,i) => `
+    <div class="photo-thumb"><img src="${src}"><button class="del-btn" onclick="removeSpotFormThumb(${i})">✕</button></div>`).join('');
+}
+function removeSpotFormThumb(i) { currentSpotPhotos.splice(i,1); renderSpotFormThumbs(); }
+
+// ─── 写真アップロード（編集フォーム） ─────────────────────────
+function handleEditSitePhotoUpload(ev, id) {
+  if (!editSitePhotoTemp[id]) editSitePhotoTemp[id] = [...(sitePhotoCache[id]||[])];
+  Array.from(ev.target.files).forEach(file => {
+    const r = new FileReader();
+    r.onload = e => { editSitePhotoTemp[id].push(e.target.result); renderEditSiteThumbs(id); };
+    r.readAsDataURL(file);
+  });
+  ev.target.value = '';
+}
+function renderEditSiteThumbs(id) {
+  const el = document.getElementById('editSitePhotoThumbs_' + id);
+  if (!el) return;
+  const arr = editSitePhotoTemp[id] || [];
+  el.innerHTML = arr.map((src,i) => `
+    <div class="photo-thumb"><img src="${src}"><button class="del-btn" onclick="removeEditSiteThumb(${id},${i})">✕</button></div>`).join('');
+}
+function removeEditSiteThumb(id, i) { editSitePhotoTemp[id].splice(i,1); renderEditSiteThumbs(id); }
+
+function handleEditSpotPhotoUpload(ev, id) {
+  if (!editSpotPhotoTemp[id]) editSpotPhotoTemp[id] = [...(spotPhotoCache[id]||[])];
+  Array.from(ev.target.files).forEach(file => {
+    const r = new FileReader();
+    r.onload = e => { editSpotPhotoTemp[id].push(e.target.result); renderEditSpotThumbs(id); };
+    r.readAsDataURL(file);
+  });
+  ev.target.value = '';
+}
+function renderEditSpotThumbs(id) {
+  const el = document.getElementById('editSpotPhotoThumbs_' + id);
+  if (!el) return;
+  const arr = editSpotPhotoTemp[id] || [];
+  el.innerHTML = arr.map((src,i) => `
+    <div class="photo-thumb"><img src="${src}"><button class="del-btn" onclick="removeEditSpotThumb(${id},${i})">✕</button></div>`).join('');
+}
+function removeEditSpotThumb(id, i) { editSpotPhotoTemp[id].splice(i,1); renderEditSpotThumbs(id); }
+
+function photoStripHTML(photos) {
+  if (!photos || !photos.length) return '';
+  return `<div class="photo-thumbs">` + photos.map(src => `
+    <div class="photo-thumb" style="box-shadow:none;"><img src="${src}"></div>`).join('') + `</div>`;
+}
+
+// ─── ファイル添付（現場） ─────────────────────────────────
+function fileIcon(type, name) {
+  const ext = (name||'').split('.').pop().toLowerCase();
+  if (type.includes('pdf') || ext === 'pdf') return '📕';
+  if (type.includes('word') || ['doc','docx'].includes(ext)) return '📘';
+  if (type.includes('sheet') || type.includes('excel') || ['xls','xlsx','csv'].includes(ext)) return '📗';
+  if (type.includes('image')) return '🖼️';
+  return '📄';
+}
+let fileViewerBlobUrl = null;
+let currentViewedFile = null; // {bytes, mime, name}（共有ボタン用）
+function dataURLToBytes(dataURL) {
+  const [meta, base64] = dataURL.split(',');
+  const mimeMatch = meta.match(/data:(.*?);base64/);
+  const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return { bytes, mime };
+}
+function openAttachedFile(dataURL, name) {
+  const parsed = dataURLToBytes(dataURL);
+  currentViewedFile = { bytes: parsed.bytes, mime: parsed.mime, name: name || 'file' };
+  if (parsed.mime === 'application/pdf' || (!parsed.mime.startsWith('image/') && parsed.mime !== 'application/octet-stream')) {
+    // PDF・Word・Excel等はSafari本来のビューアで新しいタブに直接開く（全ページ表示・ピンチズーム対応）
+    // data URLは長すぎて新しいタブへの直接ナビゲートが失敗することがあるため、blob URLを使う
+    const blobUrl = URL.createObjectURL(new Blob([parsed.bytes], { type: parsed.mime || 'application/octet-stream' }));
+    const win = window.open(blobUrl, '_blank');
+    if (win) { setTimeout(() => URL.revokeObjectURL(blobUrl), 60000); return; }
+    URL.revokeObjectURL(blobUrl);
+    // ポップアップがブロックされた場合はアプリ内モーダルにフォールバック
+  }
+  const body = document.getElementById('fileViewerBody');
+  const nameEl = document.getElementById('fileViewerName');
+  nameEl.textContent = name || '';
+  document.getElementById('fileViewerOverlay').classList.add('show');
+  body.innerHTML = '<div style="color:#fff;padding:24px;font-size:13px;">読み込み中…</div>';
+  try {
+    const { bytes, mime: m2 } = dataURLToBytes(dataURL);
+    const url = URL.createObjectURL(new Blob([bytes], { type: m2 || 'application/octet-stream' }));
+    fileViewerBlobUrl = url;
+    if (m2.startsWith('image/')) {
+      body.innerHTML = `<img src="${url}">`;
+    } else if (m2 === 'application/pdf') {
+      body.innerHTML = `<iframe src="${url}"></iframe>`;
+    } else {
+      body.innerHTML = `<div style="color:#fff;padding:24px;text-align:center;">
+        <div style="font-size:13px;margin-bottom:16px;">この形式はアプリ内でプレビューできません。</div>
+        <a href="${url}" download="${escAttr(name||'file')}" style="display:inline-block;background:#fff;color:#222;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:14px;">⬇️ ダウンロード</a>
+      </div>`;
+    }
+  } catch (e) {
+    body.innerHTML = '<div style="color:#fff;padding:24px;font-size:13px;">ファイルを開けませんでした。<br>' + (e && e.message ? e.message : '') + '</div>';
+  }
+}
+function closeFileViewer() {
+  document.getElementById('fileViewerOverlay').classList.remove('show');
+  document.getElementById('fileViewerBody').innerHTML = '';
+  document.getElementById('fileViewerBody').style.flexDirection = '';
+  document.getElementById('fileViewerBody').style.alignItems = '';
+  if (fileViewerBlobUrl) { URL.revokeObjectURL(fileViewerBlobUrl); fileViewerBlobUrl = null; }
+  currentViewedFile = null;
+}
+async function shareAttachedFile() {
+  if (!currentViewedFile) return;
+  const { bytes, mime, name } = currentViewedFile;
+  // 画像はWeb Share APIで直接共有（LINE等の共有先が問題なく出る）
+  if (mime.startsWith('image/')) {
+    const file = new File([bytes], name, { type: mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+  }
+  // PDFなどの書類ファイルは、一時データ(blob)をそのまま他アプリに渡すと
+  // 受け渡しが不安定になる（送信が固まる・重複送信される）ことがあるため、
+  // 一度端末に保存してから、保存先（ファイル/写真アプリ）から共有してもらう
+  // blob URLだと「ダウンロード元のリンク」がファイルに記録され、共有時に余計なリンクとして
+  // 一緒に送られてしまうことがあるため、ここではdata URLを直接使う
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const dataURL = `data:${mime || 'application/octet-stream'};base64,${btoa(binary)}`;
+  const a = document.createElement('a');
+  a.href = dataURL; a.download = name || 'file';
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast('💾 保存しました。「ファイル」アプリから共有してください');
+}
+function fileListHTML(files, removeOnclickFn) {
+  if (!files || !files.length) return '';
+  return `<div class="file-list">` + files.map((f,i) => `
+    <div class="file-chip">
+      <span class="file-icon">${fileIcon(f.type, f.name)}</span>
+      <span class="file-name" onclick='openAttachedFile(${JSON.stringify(f.dataURL)}, ${JSON.stringify(f.name)})'>${f.name}</span>
+      ${removeOnclickFn ? `<button class="del-btn" onclick="${removeOnclickFn(i)}">✕</button>` : ''}
+    </div>`).join('') + `</div>`;
+}
+
+function handleSiteFileUpload(ev) {
+  Array.from(ev.target.files).forEach(file => {
+    const r = new FileReader();
+    r.onload = e => { currentSiteFiles.push({name:file.name, type:file.type, dataURL:e.target.result}); renderSiteFormFiles(); };
+    r.readAsDataURL(file);
+  });
+  ev.target.value = '';
+}
+function renderSiteFormFiles() {
+  const el = document.getElementById('siteFileList');
+  if (!el) return;
+  el.innerHTML = fileListHTML(currentSiteFiles, i => `removeSiteFormFile(${i})`);
+}
+function removeSiteFormFile(i) { currentSiteFiles.splice(i,1); renderSiteFormFiles(); }
+
+function handleEditSiteFileUpload(ev, id) {
+  if (!editSiteFileTemp[id]) editSiteFileTemp[id] = [...(siteFileCache[id]||[])];
+  Array.from(ev.target.files).forEach(file => {
+    const r = new FileReader();
+    r.onload = e => { editSiteFileTemp[id].push({name:file.name, type:file.type, dataURL:e.target.result}); renderEditSiteFiles(id); };
+    r.readAsDataURL(file);
+  });
+  ev.target.value = '';
+}
+function renderEditSiteFiles(id) {
+  const el = document.getElementById('editSiteFileList_' + id);
+  if (!el) return;
+  const arr = editSiteFileTemp[id] || [];
+  el.innerHTML = fileListHTML(arr, i => `removeEditSiteFile(${id},${i})`);
+}
+function removeEditSiteFile(id, i) { editSiteFileTemp[id].splice(i,1); renderEditSiteFiles(id); }
+
+// ─── 現場 ───────────────────────────────────────────────
+function addSite() {
+  const name = document.getElementById('siteName').value.trim();
+  const address = document.getElementById('siteAddress').value.trim();
+  const note = document.getElementById('siteNote').value.trim();
+  const note2 = document.getElementById('siteNote2').value.trim();
+  if (!name) { showToast('名称を入力してください'); return; }
+
+  const { clientIds, contactIds } = getCheckedClientLinks(document.getElementById('siteClientLinks'));
+  const id = Date.now();
+  sites.push({ id, name, address, note, note2, clientIds, contactIds });
+  saveSites();
+  sitePhotoCache[id] = [...currentSitePhotos];
+  csSavePhotos('site_' + id, currentSitePhotos);
+  currentSitePhotos = [];
+  renderSiteFormThumbs();
+  siteFileCache[id] = [...currentSiteFiles];
+  csSavePhotos('sitefile_' + id, currentSiteFiles);
+  currentSiteFiles = [];
+  renderSiteFormFiles();
+  document.getElementById('siteName').value = '';
+  document.getElementById('siteAddress').value = '';
+  document.getElementById('siteNote').value = '';
+  document.getElementById('siteNote2').value = '';
+  updateSiteLinkOptions();
+  renderAll();
+  showToast('🏢 現場を登録しました');
+}
+
+function deleteSite(id, btn) {
+  if (btn.dataset.confirming === 'true') {
+    sites = sites.filter(s => s.id !== id);
+    saveSites(); updateSiteLinkOptions();
+    delete sitePhotoCache[id];
+    csDeletePhotos('site_' + id);
+    delete siteFileCache[id];
+    csDeletePhotos('sitefile_' + id);
+    renderAll();
+    showToast('削除しました');
+    return;
+  }
+  btn.textContent = '本当に削除？';
+  btn.style.background = 'var(--danger)'; btn.style.color = '#fff';
+  btn.dataset.confirming = 'true';
+  setTimeout(() => {
+    if (btn && btn.dataset.confirming === 'true') {
+      btn.textContent = '削除'; btn.style.background = ''; btn.style.color = '';
+      btn.dataset.confirming = 'false';
+    }
+  }, 3000);
+}
+
+function startEditSite(id) {
+  document.getElementById('siteview_' + id).style.display = 'none';
+  document.getElementById('siteedit_' + id).style.display = 'block';
+}
+function cancelEditSite(id) {
+  document.getElementById('siteview_' + id).style.display = 'block';
+  document.getElementById('siteedit_' + id).style.display = 'none';
+  delete editSitePhotoTemp[id];
+  delete editSiteFileTemp[id];
+}
+function saveEditSite(id) {
+  const name = document.getElementById('editSiteName_' + id).value.trim();
+  const address = document.getElementById('editSiteAddress_' + id).value.trim();
+  const note = document.getElementById('editSiteNote_' + id).value.trim();
+  const note2 = document.getElementById('editSiteNote2_' + id).value.trim();
+  if (!name) { showToast('名称を入力してください'); return; }
+  const idx = sites.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  const { clientIds, contactIds } = getCheckedClientLinks(document.getElementById('editSiteClientLinks_' + id));
+  sites[idx] = { ...sites[idx], name, address, note, note2, clientIds, contactIds };
+  saveSites();
+  if (editSitePhotoTemp[id]) {
+    sitePhotoCache[id] = [...editSitePhotoTemp[id]];
+    csSavePhotos('site_' + id, sitePhotoCache[id]);
+    delete editSitePhotoTemp[id];
+  }
+  if (editSiteFileTemp[id]) {
+    siteFileCache[id] = [...editSiteFileTemp[id]];
+    csSavePhotos('sitefile_' + id, siteFileCache[id]);
+    delete editSiteFileTemp[id];
+  }
+  updateSiteLinkOptions();
+  renderAll();
+  showToast('✅ 現場を更新しました');
+}
+
+function renderKanaIndex() {
+  const el = document.getElementById('siteKanaIndex');
+  el.innerHTML = `<button class="kana-btn active" onclick="setKanaFilter('',this)">全て</button>` +
+    KANA_GROUPS.map(g => `<button class="kana-btn" onclick="setKanaFilter('${g.label}',this)">${g.label}</button>`).join('') +
+    `<button class="kana-btn" onclick="setKanaFilter('ABC',this)">ABC</button>`;
+}
+function setKanaFilter(label, btn) {
+  siteKanaFilter = label;
+  document.querySelectorAll('#siteKanaIndex .kana-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSites();
+}
+function kataToHira(str) {
+  return str.replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+function matchesKana(name, label) {
+  if (!label) return true;
+  if (label === 'ABC') return /^[A-Za-z]/.test(name.trim());
+  const group = KANA_GROUPS.find(g => g.label === label);
+  if (!group) return true;
+  const first = kataToHira(name.trim()).charAt(0);
+  return group.chars.includes(first);
+}
+
+function renderClientKanaIndex() {
+  const el = document.getElementById('clientKanaIndex');
+  if (!el) return;
+  el.innerHTML = `<button class="kana-btn active" onclick="setClientKanaFilter('',this)">全て</button>` +
+    KANA_GROUPS.map(g => `<button class="kana-btn" onclick="setClientKanaFilter('${g.label}',this)">${g.label}</button>`).join('') +
+    `<button class="kana-btn" onclick="setClientKanaFilter('ABC',this)">ABC</button>`;
+}
+function setClientKanaFilter(label, btn) {
+  clientKanaFilter = label;
+  document.querySelectorAll('#clientKanaIndex .kana-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderClients();
+}
+
+function toggleSiteCard(id) {
+  const opening = !expandedSiteIds.has(id);
+  if (expandedSiteIds.has(id)) expandedSiteIds.delete(id);
+  else expandedSiteIds.add(id);
+  const el = document.getElementById('detail_' + id);
+  if (el) el.classList.toggle('open');
+  if (opening) {
+    const card = document.getElementById('sitecard_' + id);
+    if (card) {
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 900);
+    }
+  }
+}
+
+function renderSites() {
+  const q = document.getElementById('siteSearch').value.trim();
+  const listEl = document.getElementById('siteList');
+  let list = sites.filter(s => s.name.includes(q) && matchesKana(s.name, siteKanaFilter));
+  list.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+
+  document.getElementById('countBadge').textContent = sites.length + '件の現場';
+
+  if (!list.length) {
+    listEl.innerHTML = `<div class="empty-state"><div class="ei">🏢</div><p>現場がまだ登録されていません</p></div>`;
+    return;
+  }
+
+  listEl.innerHTML = list.map(s => {
+    const linkedSpots = spots.filter(sp => (sp.siteIds||[]).includes(s.id));
+    return `
+    <div class="site-card" id="sitecard_${s.id}">
+      <div id="siteview_${s.id}">
+        <div class="card-name-row" onclick="toggleSiteCard(${s.id})">
+          <div class="card-name">🏢 ${s.name}</div>
+          <div class="chevron">▾</div>
+        </div>
+        ${s.address ? `<div class="card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a class="addr-link" href="${mapLink(s.address)}" target="_blank" rel="noopener">📍 ${s.address}</a><button class="btn btn-outline btn-sm" style="padding:2px 8px;" data-address="${escAttr(s.address)}" onclick="event.stopPropagation(); copyAddressBtn(this)">📋 コピー</button></div>` : ''}
+        <div class="card-sub">関連スポット：${linkedSpots.length}件</div>
+        <div class="card-detail${expandedSiteIds.has(s.id) ? ' open' : ''}" id="detail_${s.id}">
+          ${s.note ? `<div class="card-sub" style="margin-bottom:6px;">📝 ${s.note}</div>` : ''}
+          ${s.note2 ? `<div class="card-sub" style="margin-bottom:10px;">📝 ${s.note2}</div>` : ''}
+          ${photoStripHTML(sitePhotoCache[s.id])}
+          ${fileListHTML(siteFileCache[s.id])}
+          ${linkedSpots.length ? linkedSpots.map(sp => {
+            const hoursTxt = (sp.hours && sp.showHours !== false) ? `　🕐${sp.hours}` : '';
+            const priceTxt = (sp.price && sp.showPrice !== false) ? `　💴${sp.price}` : '';
+            return `
+            <div class="spot-mini" onclick="goToSpot(${sp.id}, ${s.id})">
+              <span>${spotIcon(sp.category)} ${sp.name}${hoursTxt}${priceTxt}</span>
+              <span style="color:var(--sky-deep);">›</span>
+            </div>`;
+          }).join('') : `<div style="font-size:12px;color:var(--gray);">紐づくスポットはまだありません</div>`}
+          ${(s.clientIds && s.clientIds.length) ? s.clientIds.map(cid => {
+            const cl = clients.find(x => x.id === cid);
+            if (!cl) return '';
+            const cts = (cl.contacts||[]).filter(ct => (s.contactIds||[]).includes(ct.id));
+            return `<div class="spot-mini" onclick="goToClient(${cl.id}, ${s.id})">
+              <span>🤝 ${cl.name}${cts.length ? '（'+cts.map(c=>c.name).join('、')+'）' : ''}</span>
+              <span style="color:var(--sky-deep);">›</span>
+            </div>`;
+          }).join('') : ''}
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="startEditSite(${s.id})">編集</button>
+            <button class="btn btn-outline btn-sm" onclick="addSpotForSite(${s.id})">➕ スポット追加</button>
+            <button class="btn btn-outline btn-sm" onclick="openShareModal('site', ${s.id})">🔗 教える</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSite(${s.id}, this)">削除</button>
+          </div>
+        </div>
+      </div>
+      <div id="siteedit_${s.id}" style="display:none;">
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>名称</label>
+          <input type="text" id="editSiteName_${s.id}" value="${escAttr(s.name)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>住所</label>
+          <input type="text" id="editSiteAddress_${s.id}" value="${escAttr(s.address)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>メモ</label>
+          <textarea id="editSiteNote_${s.id}">${s.note||''}</textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>メモ2</label>
+          <textarea id="editSiteNote2_${s.id}">${s.note2||''}</textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>取引先（複数選択可）</label>
+          ${clientLinkChecklistHTML('editSiteClientLinks_' + s.id, s.clientIds, s.contactIds)}
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>写真</label>
+          <div class="photo-upload-area" onclick="document.getElementById('editSitePhotoInput_${s.id}').click()">
+            <input type="file" id="editSitePhotoInput_${s.id}" accept="image/*" multiple onchange="handleEditSitePhotoUpload(event, ${s.id})" style="display:none;">
+            <div style="font-size:22px;margin-bottom:2px;">📷</div>
+            <div style="font-size:12px;color:var(--text-sub);">タップして写真を追加</div>
+          </div>
+          <div class="photo-thumbs" id="editSitePhotoThumbs_${s.id}"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>ファイル</label>
+          <div class="photo-upload-area" onclick="document.getElementById('editSiteFileInput_${s.id}').click()">
+            <input type="file" id="editSiteFileInput_${s.id}" multiple onchange="handleEditSiteFileUpload(event, ${s.id})" style="display:none;">
+            <div style="font-size:22px;margin-bottom:2px;">📎</div>
+            <div style="font-size:12px;color:var(--text-sub);">タップしてファイルを追加</div>
+          </div>
+          <div class="file-list" id="editSiteFileList_${s.id}"></div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-accent" style="flex:1;" onclick="saveEditSite(${s.id})">💾 保存</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="cancelEditSite(${s.id})">キャンセル</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  sites.forEach(s => { if (document.getElementById('editSitePhotoThumbs_' + s.id)) { editSitePhotoTemp[s.id] = [...(sitePhotoCache[s.id]||[])]; renderEditSiteThumbs(s.id); } });
+  sites.forEach(s => { if (document.getElementById('editSiteFileList_' + s.id)) { editSiteFileTemp[s.id] = [...(siteFileCache[s.id]||[])]; renderEditSiteFiles(s.id); } });
+}
+
+// ─── 取引先 ───────────────────────────────────────────────
+function contactMiniHTML(ct) {
+  const bits = [];
+  if (ct.phone) bits.push(`<a class="addr-link" href="tel:${ct.phone.replace(/[^0-9+]/g,'')}">📞${ct.phone}</a>`);
+  if (ct.ext) bits.push(`内線${ct.ext}`);
+  if (ct.email) bits.push(`<a class="addr-link" href="mailto:${ct.email}">✉️${ct.email}</a>`);
+  return `<div class="spot-mini" style="cursor:default;"><span>👤 ${ct.name}${bits.length?'　'+bits.join('　'):''}${ct.note?'　📝'+ct.note:''}</span></div>`;
+}
+
+function renderClients() {
+  const q = document.getElementById('clientSearch').value.trim();
+  const listEl = document.getElementById('clientList');
+  if (!listEl) return;
+  let list = clients.filter(c => c.name.includes(q) && matchesKana(c.name, clientKanaFilter));
+  list.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+
+  if (!list.length) {
+    listEl.innerHTML = `<div class="empty-state"><div class="ei">🤝</div><p>取引先がまだ登録されていません</p></div>`;
+    return;
+  }
+
+  listEl.innerHTML = list.map(c => `
+    <div class="spot-card" id="clientcard_${c.id}">
+      <div id="clientview_${c.id}">
+        <div class="card-name">🤝 ${c.name}</div>
+        ${c.address ? `<div class="card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a class="addr-link" href="${mapLink(c.address)}" target="_blank" rel="noopener">📍 ${c.address}</a><button class="btn btn-outline btn-sm" style="padding:2px 8px;" data-address="${escAttr(c.address)}" onclick="copyAddressBtn(this)">📋 コピー</button></div>` : ''}
+        ${c.phone1 ? `<div class="card-sub">📞 <a class="addr-link" href="tel:${c.phone1.replace(/[^0-9+]/g,'')}">${c.phone1}</a></div>` : ''}
+        ${c.phone2 ? `<div class="card-sub">📞 <a class="addr-link" href="tel:${c.phone2.replace(/[^0-9+]/g,'')}">${c.phone2}</a></div>` : ''}
+        ${c.email ? `<div class="card-sub">✉️ <a class="addr-link" href="mailto:${c.email}">${c.email}</a></div>` : ''}
+        ${c.website ? `<div class="card-sub"><a class="addr-link" href="${normalizeUrl(c.website)}" target="_blank" rel="noopener">🔗 ${c.website}</a></div>` : ''}
+        ${c.note ? `<div class="card-sub">📝 ${c.note}</div>` : ''}
+        ${c.note2 ? `<div class="card-sub">📝 ${c.note2}</div>` : ''}
+        ${(c.contacts && c.contacts.length) ? `<div style="margin-top:8px;">${c.contacts.map(contactMiniHTML).join('')}</div>` : ''}
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="startEditClient(${c.id})">編集</button>
+          <button class="btn btn-outline btn-sm" onclick="openShareModal('client', ${c.id})">🔗 教える</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id}, this)">削除</button>
+        </div>
+      </div>
+      <div id="clientedit_${c.id}" style="display:none;">
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>取引先名</label>
+          <input type="text" id="editClientName_${c.id}" value="${escAttr(c.name)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>住所</label>
+          <input type="text" id="editClientAddress_${c.id}" value="${escAttr(c.address)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>電話番号</label>
+          <input type="text" id="editClientPhone1_${c.id}" value="${escAttr(c.phone1)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>電話番号2</label>
+          <input type="text" id="editClientPhone2_${c.id}" value="${escAttr(c.phone2)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>メールアドレス</label>
+          <input type="text" id="editClientEmail_${c.id}" value="${escAttr(c.email)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>ホームページ</label>
+          <input type="text" id="editClientWebsite_${c.id}" value="${escAttr(c.website)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>メモ</label>
+          <textarea id="editClientNote_${c.id}">${c.note||''}</textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>メモ2</label>
+          <textarea id="editClientNote2_${c.id}">${c.note2||''}</textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>担当者</label>
+          <div id="editClientContactsContainer_${c.id}"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:8px;" onclick="addContactRow('editClientContactsContainer_${c.id}')">➕ 担当者を追加</button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-accent" style="flex:1;" onclick="saveEditClient(${c.id})">💾 保存</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="cancelEditClient(${c.id})">キャンセル</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  clients.forEach(c => {
+    const container = document.getElementById('editClientContactsContainer_' + c.id);
+    if (container) {
+      container.innerHTML = '';
+      (c.contacts||[]).forEach(ct => addContactRow('editClientContactsContainer_' + c.id, ct));
+    }
+  });
+}
+
+// ─── スポット ───────────────────────────────────────────
+function addSpot() {
+  const name = document.getElementById('spotName').value.trim();
+  const address = document.getElementById('spotAddress').value.trim();
+  const hours = document.getElementById('spotHours').value.trim();
+  const price = document.getElementById('spotPrice').value.trim();
+  const showHours = document.getElementById('spotShowHours').checked;
+  const showPrice = document.getElementById('spotShowPrice').checked;
+  const url = document.getElementById('spotUrl').value.trim();
+  const siteIds = getCheckedSiteIds(document.getElementById('spotSiteLinks'));
+  if (!name) { showToast('店舗名を入力してください'); return; }
+
+  const id = Date.now();
+  spots.push({
+    id, name, address, hours, price, showHours, showPrice, url,
+    category: selectedSpotCat,
+    siteIds,
+  });
+  saveSpots();
+  spotPhotoCache[id] = [...currentSpotPhotos];
+  csSavePhotos('spot_' + id, currentSpotPhotos);
+  currentSpotPhotos = [];
+  renderSpotFormThumbs();
+  document.getElementById('spotName').value = '';
+  document.getElementById('spotAddress').value = '';
+  document.getElementById('spotHours').value = '';
+  document.getElementById('spotPrice').value = '';
+  document.getElementById('spotUrl').value = '';
+  document.getElementById('spotShowHours').checked = true;
+  document.getElementById('spotShowPrice').checked = true;
+  renderAll();
+  showToast('📍 スポットを登録しました');
+}
+
+function deleteSpot(id, btn) {
+  if (btn.dataset.confirming === 'true') {
+    spots = spots.filter(s => s.id !== id);
+    saveSpots();
+    delete spotPhotoCache[id];
+    csDeletePhotos('spot_' + id);
+    renderAll();
+    showToast('削除しました');
+    return;
+  }
+  btn.textContent = '本当に削除？';
+  btn.style.background = 'var(--danger)'; btn.style.color = '#fff';
+  btn.dataset.confirming = 'true';
+  setTimeout(() => {
+    if (btn && btn.dataset.confirming === 'true') {
+      btn.textContent = '削除'; btn.style.background = ''; btn.style.color = '';
+      btn.dataset.confirming = 'false';
+    }
+  }, 3000);
+}
+
+function startEditSpot(id) {
+  document.getElementById('spotview_' + id).style.display = 'none';
+  document.getElementById('spotedit_' + id).style.display = 'block';
+}
+function cancelEditSpot(id) {
+  document.getElementById('spotview_' + id).style.display = 'block';
+  document.getElementById('spotedit_' + id).style.display = 'none';
+  delete editSpotPhotoTemp[id];
+}
+function saveEditSpot(id) {
+  const name = document.getElementById('editSpotName_' + id).value.trim();
+  const address = document.getElementById('editSpotAddress_' + id).value.trim();
+  const hours = document.getElementById('editSpotHours_' + id).value.trim();
+  const price = document.getElementById('editSpotPrice_' + id).value.trim();
+  const showHours = document.getElementById('editSpotShowHours_' + id).checked;
+  const showPrice = document.getElementById('editSpotShowPrice_' + id).checked;
+  const url = document.getElementById('editSpotUrl_' + id).value.trim();
+  const category = document.getElementById('editSpotCat_' + id).value;
+  const siteIds = getCheckedSiteIds(document.getElementById('editSpotSiteLinks_' + id));
+  if (!name) { showToast('店舗名を入力してください'); return; }
+  const idx = spots.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  spots[idx] = { ...spots[idx], name, address, hours, price, showHours, showPrice, url, category, siteIds };
+  saveSpots();
+  if (editSpotPhotoTemp[id]) {
+    spotPhotoCache[id] = [...editSpotPhotoTemp[id]];
+    csSavePhotos('spot_' + id, spotPhotoCache[id]);
+    delete editSpotPhotoTemp[id];
+  }
+  renderAll();
+  showToast('✅ スポットを更新しました');
+}
+
+function renderSpotFilterChips() {
+  const cats = ['all', ...CAT_LIST];
+  const el = document.getElementById('spotFilterChips');
+  el.innerHTML = cats.map(c => `
+    <div class="filter-chip ${c===spotCatFilter?'active':''}" onclick="setSpotFilter('${c}')">
+      ${c === 'all' ? '全て' : spotIcon(c) + ' ' + c}
+    </div>`).join('');
+}
+function setSpotFilter(cat) {
+  spotCatFilter = cat;
+  renderSpotFilterChips();
+  renderSpots();
+}
+
+function updateSiteLinkOptions() {
+  const el = document.getElementById('spotSiteLinks');
+  if (!el) return;
+  const prevChecked = new Set(Array.from(el.querySelectorAll('input:checked')).map(i => i.value));
+  if (!sites.length) {
+    el.innerHTML = '<div class="empty-hint">登録済みの現場がありません</div>';
+    return;
+  }
+  el.innerHTML = sites.map(s => `
+    <label><input type="checkbox" value="${s.id}" ${prevChecked.has(String(s.id))?'checked':''}>${s.name}</label>`).join('');
+}
+function getCheckedSiteIds(containerEl) {
+  return Array.from(containerEl.querySelectorAll('input:checked')).map(i => parseInt(i.value));
+}
+function siteLinkChecklistHTML(containerId, selectedIds) {
+  const ids = (selectedIds || []).map(String);
+  if (!sites.length) return `<div id="${containerId}" class="site-checklist"><div class="empty-hint">登録済みの現場がありません</div></div>`;
+  return `<div id="${containerId}" class="site-checklist">` +
+    sites.map(s => `<label><input type="checkbox" value="${s.id}" ${ids.includes(String(s.id))?'checked':''}>${s.name}</label>`).join('') +
+    `</div>`;
+}
+
+function catSelectHTML(idPrefix, selectedCat) {
+  return '<select id="' + idPrefix + '">' +
+    CAT_LIST.map(c => `<option value="${c}" ${c===selectedCat?'selected':''}>${spotIcon(c)} ${c}</option>`).join('') +
+    '</select>';
+}
+
+// ─── 現場フォームの「取引先」複数選択チェックリスト ───────────
+function updateClientLinkOptions() {
+  const el = document.getElementById('siteClientLinks');
+  if (!el) return;
+  const prevClients = new Set(Array.from(el.querySelectorAll('.client-link-cb:checked')).map(i => i.value));
+  const prevContacts = new Set(Array.from(el.querySelectorAll('.contact-link-cb:checked')).map(i => i.value));
+  el.innerHTML = clientLinkChecklistInnerHTML(Array.from(prevClients), Array.from(prevContacts));
+}
+function clientLinkChecklistInnerHTML(selectedClientIds, selectedContactIds) {
+  const cids = (selectedClientIds || []).map(String);
+  const knids = (selectedContactIds || []).map(String);
+  if (!clients.length) return '<div class="empty-hint">登録済みの取引先がありません</div>';
+  return clients.map(c => {
+    let html = `<label><input type="checkbox" class="client-link-cb" value="${c.id}" ${cids.includes(String(c.id))?'checked':''}>🤝 ${c.name}</label>`;
+    if (c.contacts && c.contacts.length) {
+      html += c.contacts.map(ct => `<label style="padding-left:24px;font-size:12px;"><input type="checkbox" class="contact-link-cb" value="${ct.id}" ${knids.includes(String(ct.id))?'checked':''}>👤 ${ct.name}</label>`).join('');
+    }
+    return html;
+  }).join('');
+}
+function clientLinkChecklistHTML(containerId, selectedClientIds, selectedContactIds) {
+  return `<div id="${containerId}" class="site-checklist">` +
+    clientLinkChecklistInnerHTML(selectedClientIds, selectedContactIds) +
+    `</div>`;
+}
+function getCheckedClientLinks(containerEl) {
+  const clientIds = Array.from(containerEl.querySelectorAll('.client-link-cb:checked')).map(i => parseInt(i.value));
+  const contactIds = Array.from(containerEl.querySelectorAll('.contact-link-cb:checked')).map(i => parseInt(i.value));
+  return { clientIds, contactIds };
+}
+
+// ─── 担当者の動的リピーター（取引先フォーム） ───────────────
+let contactRowSeq = 0;
+function addContactRow(containerId, data) {
+  data = data || {};
+  const idx = contactRowSeq++;
+  const el = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.className = 'contact-row';
+  row.innerHTML = `
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div class="form-group">
+        <label>氏名</label>
+        <input type="text" class="contact-name" value="${escAttr(data.name)}" placeholder="例：山田 太郎">
+      </div>
+      <div class="form-group">
+        <label>電話番号（任意）</label>
+        <input type="text" class="contact-phone" value="${escAttr(data.phone)}" placeholder="例：090-0000-0000">
+      </div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr;">
+      <div class="form-group">
+        <label>内線番号（任意）</label>
+        <input type="text" class="contact-ext" value="${escAttr(data.ext)}">
+      </div>
+      <div class="form-group">
+        <label>メールアドレス（任意）</label>
+        <input type="text" class="contact-email" value="${escAttr(data.email)}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>メモ（任意）</label>
+        <input type="text" class="contact-note" value="${escAttr(data.note)}">
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline btn-sm" onclick="this.closest('.contact-row').remove()">🗑️ この担当者を削除</button>
+  `;
+  el.appendChild(row);
+}
+function readContactRows(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return [];
+  return Array.from(el.querySelectorAll('.contact-row')).map(row => ({
+    name:  row.querySelector('.contact-name').value.trim(),
+    phone: row.querySelector('.contact-phone').value.trim(),
+    ext:   row.querySelector('.contact-ext').value.trim(),
+    email: row.querySelector('.contact-email').value.trim(),
+    note:  row.querySelector('.contact-note').value.trim(),
+  })).filter(c => c.name);
+}
+function assignContactIds(contacts, existing) {
+  // 既存の担当者は同じidを維持し、新規は新しいidを振る（現場からの紐付けを壊さないため）
+  const existingByName = {};
+  (existing || []).forEach(c => { existingByName[c.name] = existingByName[c.name] || []; existingByName[c.name].push(c); });
+  return contacts.map((c, i) => {
+    const pool = existingByName[c.name];
+    if (pool && pool.length) return { ...c, id: pool.shift().id };
+    return { ...c, id: Date.now() + i };
+  });
+}
+
+// ─── 取引先 CRUD ────────────────────────────────────────
+function addClient() {
+  const name = document.getElementById('clientName').value.trim();
+  const address = document.getElementById('clientAddress').value.trim();
+  const phone1 = document.getElementById('clientPhone1').value.trim();
+  const phone2 = document.getElementById('clientPhone2').value.trim();
+  const email = document.getElementById('clientEmail').value.trim();
+  const website = document.getElementById('clientWebsite').value.trim();
+  const note = document.getElementById('clientNote').value.trim();
+  const note2 = document.getElementById('clientNote2').value.trim();
+  if (!name) { showToast('取引先名を入力してください'); return; }
+
+  const contacts = readContactRows('clientContactsContainer').map((c, i) => ({ ...c, id: Date.now() + i }));
+  clients.push({ id: Date.now(), name, address, phone1, phone2, email, website, note, note2, contacts });
+  saveClients();
+
+  document.getElementById('clientName').value = '';
+  document.getElementById('clientAddress').value = '';
+  document.getElementById('clientPhone1').value = '';
+  document.getElementById('clientPhone2').value = '';
+  document.getElementById('clientEmail').value = '';
+  document.getElementById('clientWebsite').value = '';
+  document.getElementById('clientNote').value = '';
+  document.getElementById('clientNote2').value = '';
+  document.getElementById('clientContactsContainer').innerHTML = '';
+
+  updateClientLinkOptions();
+  renderAll();
+  showToast('🤝 取引先を登録しました');
+}
+
+function deleteClient(id, btn) {
+  if (btn.dataset.confirming === 'true') {
+    clients = clients.filter(c => c.id !== id);
+    saveClients();
+    updateClientLinkOptions();
+    renderAll();
+    showToast('削除しました');
+    return;
+  }
+  btn.textContent = '本当に削除？';
+  btn.style.background = 'var(--danger)'; btn.style.color = '#fff';
+  btn.dataset.confirming = 'true';
+  setTimeout(() => {
+    if (btn && btn.dataset.confirming === 'true') {
+      btn.textContent = '削除'; btn.style.background = ''; btn.style.color = '';
+      btn.dataset.confirming = 'false';
+    }
+  }, 3000);
+}
+
+function startEditClient(id) {
+  document.getElementById('clientview_' + id).style.display = 'none';
+  document.getElementById('clientedit_' + id).style.display = 'block';
+}
+function cancelEditClient(id) {
+  document.getElementById('clientview_' + id).style.display = 'block';
+  document.getElementById('clientedit_' + id).style.display = 'none';
+}
+function saveEditClient(id) {
+  const name = document.getElementById('editClientName_' + id).value.trim();
+  const address = document.getElementById('editClientAddress_' + id).value.trim();
+  const phone1 = document.getElementById('editClientPhone1_' + id).value.trim();
+  const phone2 = document.getElementById('editClientPhone2_' + id).value.trim();
+  const email = document.getElementById('editClientEmail_' + id).value.trim();
+  const website = document.getElementById('editClientWebsite_' + id).value.trim();
+  const note = document.getElementById('editClientNote_' + id).value.trim();
+  const note2 = document.getElementById('editClientNote2_' + id).value.trim();
+  if (!name) { showToast('取引先名を入力してください'); return; }
+  const idx = clients.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  const rawContacts = readContactRows('editClientContactsContainer_' + id);
+  const contacts = assignContactIds(rawContacts, clients[idx].contacts);
+  clients[idx] = { ...clients[idx], name, address, phone1, phone2, email, website, note, note2, contacts };
+  saveClients();
+  updateClientLinkOptions();
+  renderAll();
+  showToast('✅ 取引先を更新しました');
+}
+
+function renderSpots() {
+  const q = document.getElementById('spotSearch').value.trim();
+  const listEl = document.getElementById('spotList');
+  let list = spots.filter(s => s.name.includes(q) && (spotCatFilter==='all' || s.category===spotCatFilter));
+  list.sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+
+  if (!list.length) {
+    listEl.innerHTML = `<div class="empty-state"><div class="ei">📍</div><p>スポットがまだ登録されていません</p></div>`;
+    return;
+  }
+
+  listEl.innerHTML = list.map(s => {
+    const relatedSites = sites.filter(x => (s.siteIds||[]).includes(x.id));
+    return `
+    <div class="spot-card" id="spotcard_${s.id}">
+      <div id="spotview_${s.id}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+          <div>
+            <div class="card-name">${spotIcon(s.category)} ${s.name}</div>
+            <div class="card-sub">
+              <span class="badge">${s.category}</span>
+              ${s.hours ? '🕐 '+s.hours : ''}
+            </div>
+            ${s.address ? `<div class="card-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><a class="addr-link" href="${mapLink(s.address)}" target="_blank" rel="noopener">📍 ${s.address}</a><button class="btn btn-outline btn-sm" style="padding:2px 8px;" data-address="${escAttr(s.address)}" onclick="copyAddressBtn(this)">📋 コピー</button></div>` : ''}
+            ${s.price ? `<div class="card-sub">💴 ${s.price}</div>` : ''}
+            ${s.url ? `<div class="card-sub"><a class="addr-link" href="${normalizeUrl(s.url)}" target="_blank" rel="noopener">🔗 ${s.url}</a></div>` : ''}
+            ${relatedSites.length ? `<div class="card-sub">🏢 ${relatedSites.map(x=>x.name).join('　/　')}</div>` : ''}
+            ${photoStripHTML(spotPhotoCache[s.id])}
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="startEditSpot(${s.id})">編集</button>
+          <button class="btn btn-outline btn-sm" onclick="openShareModal('spot', ${s.id})">🔗 教える</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSpot(${s.id}, this)">削除</button>
+        </div>
+      </div>
+      <div id="spotedit_${s.id}" style="display:none;">
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>種別</label>
+          ${catSelectHTML('editSpotCat_' + s.id, s.category)}
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>店舗名</label>
+          <input type="text" id="editSpotName_${s.id}" value="${escAttr(s.name)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>住所</label>
+          <input type="text" id="editSpotAddress_${s.id}" value="${escAttr(s.address)}">
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>営業時間</label>
+          <input type="text" id="editSpotHours_${s.id}" value="${escAttr(s.hours)}">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;margin-top:2px;">
+            <input type="checkbox" id="editSpotShowHours_${s.id}" ${s.showHours!==false?'checked':''} style="width:auto;">現場の一覧に表示
+          </label>
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>価格帯・メモ</label>
+          <input type="text" id="editSpotPrice_${s.id}" value="${escAttr(s.price)}">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;margin-top:2px;">
+            <input type="checkbox" id="editSpotShowPrice_${s.id}" ${s.showPrice!==false?'checked':''} style="width:auto;">現場の一覧に表示
+          </label>
+        </div>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>ホームページURL</label>
+          <input type="text" id="editSpotUrl_${s.id}" value="${escAttr(s.url)}">
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>関連する現場（複数選択可）</label>
+          ${siteLinkChecklistHTML('editSpotSiteLinks_' + s.id, s.siteIds)}
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>写真</label>
+          <div class="photo-upload-area" onclick="document.getElementById('editSpotPhotoInput_${s.id}').click()">
+            <input type="file" id="editSpotPhotoInput_${s.id}" accept="image/*" multiple onchange="handleEditSpotPhotoUpload(event, ${s.id})" style="display:none;">
+            <div style="font-size:22px;margin-bottom:2px;">📷</div>
+            <div style="font-size:12px;color:var(--text-sub);">タップして写真を追加</div>
+          </div>
+          <div class="photo-thumbs" id="editSpotPhotoThumbs_${s.id}"></div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-accent" style="flex:1;" onclick="saveEditSpot(${s.id})">💾 保存</button>
+          <button class="btn btn-outline" style="flex:1;" onclick="cancelEditSpot(${s.id})">キャンセル</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  spots.forEach(s => { if (document.getElementById('editSpotPhotoThumbs_' + s.id)) { editSpotPhotoTemp[s.id] = [...(spotPhotoCache[s.id]||[])]; renderEditSpotThumbs(s.id); } });
+}
+
+// リンクされたスポットをタップした時、スポットタブへ移動してそのスポットを表示
+function goToClient(id, fromSiteId) {
+  const client = clients.find(c => c.id === id);
+  if (!client) return;
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-clients').classList.add('active');
+  document.querySelectorAll('.tab-btn')[2].classList.add('active');
+  document.getElementById('clientSearch').value = client.name;
+  renderClients();
+  setTimeout(() => {
+    const card = document.getElementById('clientcard_' + id);
+    if (card) {
+      card.scrollIntoView({ behavior:'smooth', block:'center' });
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 1500);
+    }
+  }, 50);
+}
+
+function goToSpot(id, fromSiteId) {
+  const spot = spots.find(s => s.id === id);
+  if (!spot) return;
+  lastSiteId = (fromSiteId !== undefined) ? fromSiteId : null;
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-spots').classList.add('active');
+  document.querySelectorAll('.tab-btn')[1].classList.add('active');
+  spotCatFilter = 'all';
+  renderSpotFilterChips();
+  document.getElementById('spotSearch').value = spot.name;
+  renderSpots();
+  renderBackToSiteBar();
+  setTimeout(() => {
+    const card = document.getElementById('spotcard_' + id);
+    if (card) {
+      card.scrollIntoView({ behavior:'smooth', block:'center' });
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 1500);
+    }
+  }, 50);
+}
+
+function renderBackToSiteBar() {
+  const bar = document.getElementById('backToSiteBar');
+  if (!bar) return;
+  if (lastSiteId === null) { bar.innerHTML = ''; return; }
+  const site = sites.find(s => s.id === lastSiteId);
+  if (!site) { bar.innerHTML = ''; return; }
+  bar.innerHTML = `
+    <div class="filter-chip active" style="margin-bottom:10px;display:inline-flex;" onclick="backToSite()">
+      🏢 ${site.name} に戻る
+    </div>`;
+}
+
+function backToSite() {
+  const id = lastSiteId;
+  if (id === null) return;
+  expandedSiteIds.add(id);
+  document.getElementById('spotSearch').value = '';
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-sites').classList.add('active');
+  document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  renderSites();
+  setTimeout(() => {
+    const card = document.getElementById('sitecard_' + id);
+    if (card) {
+      card.scrollIntoView({ behavior:'smooth', block:'center' });
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 1500);
+    }
+  }, 50);
+}
+
+function renderAll() {
+  renderSites();
+  renderSpots();
+  renderClients();
+  updateSiteLinkOptions();
+  updateClientLinkOptions();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ─── 個別の現場・スポットを共有する ─────────────────────────
+function openShareModal(type, id) {
+  shareContext = { type, id };
+  const optsEl = document.getElementById('shareModalOptions');
+  const titleEl = document.getElementById('shareModalTitle');
+
+  if (type === 'site') {
+    const s = sites.find(x => x.id === id);
+    if (!s) return;
+    titleEl.textContent = `🏢 ${s.name} を共有`;
+    optsEl.innerHTML = `
+      <label class="share-option-row"><input type="checkbox" id="shareIncludeNote" checked>メモを含める</label>
+      <label class="share-option-row"><input type="checkbox" id="shareIncludeNote2" checked>メモ2を含める</label>
+      <label class="share-option-row"><input type="checkbox" id="shareIncludeSpots" checked>関連スポットを含める</label>`;
+  } else if (type === 'client') {
+    const cl = clients.find(x => x.id === id);
+    if (!cl) return;
+    titleEl.textContent = `🤝 ${cl.name} を共有`;
+    optsEl.innerHTML = `
+      <label class="share-option-row"><input type="checkbox" id="shareIncludeNote" checked>メモを含める</label>
+      <label class="share-option-row"><input type="checkbox" id="shareIncludeNote2" checked>メモ2を含める</label>
+      <label class="share-option-row"><input type="checkbox" id="shareIncludeContacts" checked>担当者を含める</label>`;
+  } else {
+    const sp = spots.find(x => x.id === id);
+    if (!sp) return;
+    titleEl.textContent = `${spotIcon(sp.category)} ${sp.name} を共有`;
+    optsEl.innerHTML = `
+      <label class="share-option-row"><input type="checkbox" id="shareIncludeHours" checked>営業時間を含める</label>
+      <label class="share-option-row"><input type="checkbox" id="shareIncludePrice" checked>価格帯・メモを含める</label>`;
+  }
+  document.getElementById('shareOverlay').classList.add('show');
+}
+
+function closeShareModal() {
+  document.getElementById('shareOverlay').classList.remove('show');
+  shareContext = null;
+}
+
+async function doShare() {
+  if (!shareContext) return;
+  let text = '';
+
+  if (shareContext.type === 'site') {
+    const s = sites.find(x => x.id === shareContext.id);
+    if (!s) return;
+    const includeNote  = document.getElementById('shareIncludeNote').checked;
+    const includeNote2 = document.getElementById('shareIncludeNote2').checked;
+    const includeSpots = document.getElementById('shareIncludeSpots').checked;
+
+    text += `🏢 ${s.name}\n`;
+    if (s.address) text += `📍 ${s.address}\n${mapLink(s.address)}\n`;
+    if (includeNote  && s.note)  text += `📝 ${s.note}\n`;
+    if (includeNote2 && s.note2) text += `📝 ${s.note2}\n`;
+    if (includeSpots) {
+      const linked = spots.filter(sp => (sp.siteIds||[]).includes(s.id));
+      if (linked.length) {
+        text += `\n【関連スポット】\n`;
+        linked.forEach(sp => {
+          text += `${spotIcon(sp.category)} ${sp.name}`;
+          if (sp.hours && sp.showHours !== false) text += `　🕐${sp.hours}`;
+          if (sp.price && sp.showPrice !== false) text += `　💴${sp.price}`;
+          text += `\n`;
+          if (sp.address) text += `　📍 ${sp.address}\n　${mapLink(sp.address)}\n`;
+        });
+      }
+    }
+  } else if (shareContext.type === 'client') {
+    const cl = clients.find(x => x.id === shareContext.id);
+    if (!cl) return;
+    const includeNote  = document.getElementById('shareIncludeNote').checked;
+    const includeNote2 = document.getElementById('shareIncludeNote2').checked;
+    const includeContacts = document.getElementById('shareIncludeContacts').checked;
+
+    text += `🤝 ${cl.name}\n`;
+    if (cl.address) text += `📍 ${cl.address}\n${mapLink(cl.address)}\n`;
+    if (cl.phone1) text += `📞 ${cl.phone1}\n`;
+    if (cl.phone2) text += `📞 ${cl.phone2}\n`;
+    if (cl.email) text += `✉️ ${cl.email}\n`;
+    if (cl.website) text += `🔗 ${cl.website}\n`;
+    if (includeNote  && cl.note)  text += `📝 ${cl.note}\n`;
+    if (includeNote2 && cl.note2) text += `📝 ${cl.note2}\n`;
+    if (includeContacts && cl.contacts && cl.contacts.length) {
+      text += `\n【担当者】\n`;
+      cl.contacts.forEach(ct => {
+        text += `👤 ${ct.name}`;
+        if (ct.phone) text += `　📞${ct.phone}`;
+        if (ct.ext) text += `　内線${ct.ext}`;
+        text += `\n`;
+        if (ct.email) text += `　✉️${ct.email}\n`;
+      });
+    }
+  } else {
+    const sp = spots.find(x => x.id === shareContext.id);
+    if (!sp) return;
+    const includeHours = document.getElementById('shareIncludeHours').checked;
+    const includePrice = document.getElementById('shareIncludePrice').checked;
+
+    text += `${spotIcon(sp.category)} ${sp.name}\n`;
+    text += `${sp.category}\n`;
+    if (sp.address) text += `📍 ${sp.address}\n${mapLink(sp.address)}\n`;
+    if (includeHours && sp.hours) text += `🕐 ${sp.hours}\n`;
+    if (includePrice && sp.price) text += `💴 ${sp.price}\n`;
+    if (sp.url) text += `🔗 ${sp.url}\n`;
+  }
+
+  text += `\n【CleanSiteより共有】\nhttps://cleanbillapp.github.io/CleanSite/`;
+  closeShareModal();
+
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; } catch(e) { if (e.name === 'AbortError') return; }
+  }
+  csCopyToClipboard(text);
+}
+
+
+async function shareApp() {
+  const appUrl  = 'https://cleanbillapp.github.io/CleanSite/';
+  const appName = 'CleanSite（現場情報管理アプリ）';
+  const message = `【${appName}】\n現場の情報（注意事項、作業手順等）、現場近くの駐車場、飲食店、取引先などをまとめて管理できるアプリです！\n無料で使えます👇\n${appUrl}\n\n🧾 姉妹アプリ\n【CleanBill（請求書作成アプリ）】\nhttps://cleanbillapp.github.io/PLOMPT/\n【CleanTax（確定申告サポートアプリ）】\nhttps://cleanbillapp.github.io/CleanTax/\nも無料です！\n\n⚠️ 利用の際は、必ず「ホーム画面への追加」をお願いします！`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: appName, text: message, url: appUrl });
+    } catch(e) {
+      if (e.name !== 'AbortError') csCopyToClipboard(message);
+    }
+  } else {
+    csCopyToClipboard(message);
+  }
+}
+
+function csCopyToClipboard(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('📋 URLをコピーしました！LINEなどに貼り付けてください');
+    });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 URLをコピーしました！LINEなどに貼り付けてください');
+  }
+}
+
+// ─── 登録データをテキストで書き出す ─────────────────────────
+async function exportDataAsText() {
+  if (!sites.length && !spots.length) {
+    showToast('まだ登録されたデータがありません');
+    return;
+  }
+
+  let text = `【CleanSite 現場・スポット一覧】\n（${new Date().toLocaleDateString('ja-JP')}時点）\n`;
+
+  sites.slice().sort((a,b)=>a.name.localeCompare(b.name,'ja')).forEach(s => {
+    text += `\n🏢 ${s.name}\n`;
+    if (s.address) text += `　📍 ${s.address}\n`;
+    if (s.note)    text += `　📝 ${s.note}\n`;
+    if (s.note2)   text += `　📝 ${s.note2}\n`;
+    const linked = spots.filter(sp => (sp.siteIds||[]).includes(s.id));
+    linked.forEach(sp => {
+      text += `　　${spotIcon(sp.category)} ${sp.name}`;
+      if (sp.hours && sp.showHours !== false) text += `　🕐${sp.hours}`;
+      if (sp.price && sp.showPrice !== false) text += `　💴${sp.price}`;
+      text += `\n`;
+      if (sp.address) text += `　　　📍 ${sp.address}\n`;
+    });
+  });
+
+  const standalone = spots.filter(sp => !(sp.siteIds && sp.siteIds.length));
+  if (standalone.length) {
+    text += `\n📍 単独スポット\n`;
+    standalone.slice().sort((a,b)=>a.name.localeCompare(b.name,'ja')).forEach(sp => {
+      text += `　${spotIcon(sp.category)} ${sp.name}`;
+      if (sp.hours && sp.showHours !== false) text += `　🕐${sp.hours}`;
+      if (sp.price && sp.showPrice !== false) text += `　💴${sp.price}`;
+      text += `\n`;
+      if (sp.address) text += `　　📍 ${sp.address}\n`;
+    });
+  }
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'CleanSite 現場・スポット一覧', text });
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+  csCopyToClipboard(text);
+}
+</script>
+</body>
+</html>
